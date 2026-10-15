@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useCart } from "@/hooks/use-cart";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";\nimport { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export function Logo() {
   return (
