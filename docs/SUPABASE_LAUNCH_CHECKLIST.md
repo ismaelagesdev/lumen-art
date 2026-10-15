@@ -1,81 +1,53 @@
 # Lumen Print — checklist de conexão com o Supabase
 
-Este documento registra o que precisa ser confirmado no projeto Supabase antes de considerar a loja pronta para receber pedidos reais.
+Este checklist descreve o banco legado atualmente usado pela branch `adaptar-supabase-existente`. A branch não altera o banco remoto.
 
-## 1. Variáveis locais
+## 1. Variáveis de ambiente
 
-Crie `.env.local` na raiz do projeto (ao lado de `package.json`) usando `.env.example` como modelo:
+Configure a URL do projeto Supabase correto e sua chave pública (`publishable` ou `anon`, conforme o projeto) nas variáveis de ambiente esperadas pelo ambiente de publicação. Nunca exponha uma chave `service_role` ou outra chave secreta em variáveis `VITE_*` nem no navegador.
 
-```dotenv
-VITE_SUPABASE_URL=https://SEU_PROJECT_REF.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=sua_chave_publica_publishable
-```
+## 2. Esquema legado esperado
 
-Use a URL e a chave pública do projeto correto em **Supabase → Project Settings → API** (ou a tela equivalente do painel atual). Não use valores de exemplo, chave `service_role` nem chave secreta em variáveis `VITE_*`. O arquivo `.env.local` não deve ser commitado.
+O adaptador usa as estruturas existentes confirmadas:
 
-Depois de salvar, reinicie o servidor de desenvolvimento.
+- `public.produtos`: `id`, `nome`, `preco`, `ativo`, `criado_em`, `atualizado_em`.
+- `public.pedidos`: dados do cliente, `status`, `itens` JSONB, `valor_total`, `observacoes` e timestamps.
+- `public.perfis`: papel e dados básicos do usuário.
+- `public.mensagens`: mensagens e metadados dos anexos vinculados a `pedido_id`.
+- RPC `public.criar_pedido(...)` para registrar pedidos e recalcular valores oficiais.
+- Bucket privado `personalizacoes` para arquivos associados a pedidos.
 
-## 2. Estrutura que o aplicativo espera
+Não executar `0000_lumen_core.sql` nem seeds destinados ao esquema novo no banco existente: eles podem criar estruturas conflitantes e não fazem parte desta adaptação.
 
-Confirme que o banco ativo contém as tabelas e colunas compatíveis com os tipos em `src/integrations/supabase/types.ts`:
+## 3. Limitações funcionais atuais
 
-- `categories`
-- `products`
-- `product_options`
-- `profiles`
-- `user_roles`
-- `orders`
-- `order_items`
-- `messages`
+- O catálogo não recebe imagens, descrições, categorias ou opções porque esses dados não estão nas colunas confirmadas da tabela `produtos`.
+- O checkout registra um pedido, mas não cobra pagamento, não confirma estoque e não calcula frete.
+- Encomendas usam um produto existente como referência. O preço registrado é o preço-base do produto; o preço final da personalização precisa ser confirmado pela equipe.
+- Nenhuma migração SQL foi executada nesta branch. Não houve alteração direta no Supabase.
 
-As migrações do repositório incluem:
-- `0001_security_hardening.sql` — impede que novos cadastros recebam automaticamente o papel administrativo.
-- `0002_seed_initial_products.sql` — cadastra, se ainda não existirem, os dois kits confirmados: Kit Premium de Sinuca (R$ 140,00) e Kit Premium de Truco (R$ 146,30). As imagens começam vazias e precisam ser enviadas ao bucket e vinculadas aos produtos.
+## 4. Segurança a validar
 
-**Antes de aplicar SQL em um projeto existente, confira o histórico e o esquema no Supabase.** A migração inicial `0000_lumen_core.sql` cria as tabelas e funções e não deve ser executada novamente sobre tabelas já existentes. Aplique apenas as migrações pendentes, de acordo com o estado real do banco.
+- Confirmar RLS nas tabelas `pedidos`, `mensagens`, `perfis` e `produtos`.
+- Testar com dois clientes diferentes e confirmar que cada um só acessa os próprios pedidos, mensagens e arquivos.
+- Confirmar que apenas usuários com papel `equipe` ou `admin` conseguem consultar pedidos alheios e executar ações de equipe.
+- Confirmar que os anexos permanecem privados e que os caminhos no bucket começam com o UUID do pedido autorizado.
+- Confirmar que o cadastro de usuário comum não pode atribuir papel administrativo.
+- Nunca colocar chaves secretas no frontend ou no repositório.
 
-O código também chama as funções RPC:
+## 5. Testes de ponta a ponta antes da publicação
 
-- `create_order` — cria pedido e itens; o servidor precisa recalcular preços a partir dos produtos/opções atuais, sem confiar em preços enviados pelo navegador.
-- `create_custom_request` — registra solicitação de projeto sob encomenda.
-- `has_role` — consulta papel/permissão do usuário.
+1. Aguardar CI verde no commit mais recente.
+2. Abrir a página inicial e o catálogo e confirmar que os seis produtos ativos são carregados do projeto Supabase correto.
+3. Abrir detalhes de produtos, adicionar itens, alterar quantidades e recarregar a página para testar a persistência do carrinho.
+4. Criar uma conta de teste, entrar e confirmar que o perfil de cliente é criado corretamente.
+5. Enviar um pedido de teste e conferir `numero_pedido`, itens e total calculados no servidor.
+6. Conferir histórico e detalhes do pedido na área do cliente.
+7. Enviar mensagens e anexos; abrir anexos com URL assinada e testar permissões com outro cliente.
+8. Testar `/admin` com uma conta comum e com uma conta administrativa autorizada.
+9. Confirmar quais valores de `status` são aceitos pelo fluxo administrativo antes de usá-lo em produção.
+10. Testar em desktop e celular, incluindo estados de erro, carregamento e nova tentativa.
 
-Os tipos TypeScript documentam o contrato esperado, mas **não provam** que as tabelas, funções, constraints ou políticas estejam implantadas no projeto remoto. Verifique o esquema no painel antes de testar.
+## Estado do pagamento
 
-## 3. Storage
-
-O aplicativo espera dois buckets:
-
-- `product-images` — imagens dos produtos; o código gera URLs assinadas.
-- `attachments` — anexos enviados no atendimento dos pedidos.
-
-Verifique políticas de leitura/escrita. Anexos de pedidos não devem ser publicamente acessíveis; o acesso precisa respeitar o usuário dono do pedido e a equipe autorizada.
-
-## 4. Segurança obrigatória antes de publicar
-
-- Ativar e validar RLS em todas as tabelas expostas pela API.
-- Clientes autenticados só podem consultar e alterar seus próprios dados e pedidos.
-- A equipe administrativa deve ser autorizada por uma política/função do banco; ocultar o painel no frontend não é controle de segurança.
-- Impedir que usuários comuns atribuam a si mesmos o papel `admin`.
-- Revisar os registros existentes em `user_roles`: a migração inicial antiga promovia o primeiro cadastro a administrador. Preserve apenas as contas administrativas confiáveis.
-- RPCs de criação de pedidos devem validar quantidades, produtos ativos, opções válidas, preços e totais no servidor, idealmente dentro de uma transação.
-- Proteger mensagens e anexos por pedido.
-- Não armazenar chaves secretas no navegador ou no repositório.
-
-## 5. Teste funcional de ponta a ponta
-
-Depois de conectar o projeto correto:
-
-1. Abrir a página inicial e o catálogo; verificar que produtos ativos e categorias carregam sem erros de rede.
-2. Abrir a página de cada produto e confirmar preço, imagens e opções.
-3. Adicionar/remover itens, alterar quantidades e recarregar a página para verificar a persistência do carrinho.
-4. Criar uma conta de teste, entrar e confirmar o fluxo de sessão.
-5. Enviar um pedido de teste e confirmar no banco que o pedido e os itens foram gravados com valores calculados pelo servidor.
-6. Confirmar que o cliente vê apenas os próprios pedidos e mensagens.
-7. Testar uma conta comum contra `/admin` (deve ser negado) e uma conta administrativa autorizada (deve conseguir alterar status).
-8. Enviar e abrir um anexo de teste com as permissões corretas.
-9. Testar em celular e desktop, além dos estados de carregamento, erro, vazio e nova tentativa.
-
-## Estado de pagamento
-
-O checkout atual **não cobra pagamentos**. O Mercado Pago está explicitamente marcado como integração em preparação. Não divulgar o checkout como pagamento online até implementar e testar a integração segura, a confirmação de pagamento e o tratamento de webhooks.
+O checkout atual **não cobra pagamentos**. A indicação do Mercado Pago é apenas informativa; não divulgar a loja como capaz de receber pagamentos online até implementar e testar a integração, confirmação de pagamento e webhooks.
