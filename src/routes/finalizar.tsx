@@ -99,9 +99,19 @@ function Checkout() {
       if (error) throw error;
       const pedido = data as { id?: string; numero_pedido?: string; valor_total?: number | string; status?: string };
       if (!pedido.id) throw new Error("O banco não retornou o identificador do pedido.");
+      // The order is persisted first. If payment setup is unavailable, preserve the order
+      // and route the customer to it instead of inviting them to submit a duplicate.
+      const { data: paymentData, error: paymentError } = await supabase.functions.invoke("criar-pagamento", {
+        body: { order_id: pedido.id },
+      });
       cart.clear();
-      toast.success(`Pedido ${pedido.numero_pedido ?? "criado"} enviado! O pagamento ainda não foi cobrado; a equipe confirmará frete e próximos passos.`);
-      navigate({ to: "/conta/pedidos/$id", params: { id: pedido.id } });
+      if (paymentError || !paymentData?.checkout_url) {
+        toast.warning(`Pedido ${pedido.numero_pedido ?? "criado"} registrado, mas o pagamento não foi iniciado. A equipe precisará confirmar o frete e os próximos passos.`);
+        navigate({ to: "/conta/pedidos/$id", params: { id: pedido.id } });
+        return;
+      }
+      toast.success("Pedido registrado. Redirecionando para o ambiente seguro do Mercado Pago…");
+      window.location.assign(String(paymentData.checkout_url));
     } catch (error) {
       toast.error(errorMessage(error));
     } finally {
