@@ -10,12 +10,30 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CarrinhoRouteImport } from './routes/carrinho'
+import { Route as EncomendaRouteImport } from './routes/encomenda'
+import { Route as FinalizarRouteImport } from './routes/finalizar'
 import { Route as ProdutosIndexRouteImport } from './routes/produtos.index'
 import { Route as ProdutosSlugRouteImport } from './routes/produtos.$slug'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CarrinhoRoute = CarrinhoRouteImport.update({
+  id: '/carrinho',
+  path: '/carrinho',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EncomendaRoute = EncomendaRouteImport.update({
+  id: '/encomenda',
+  path: '/encomenda',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FinalizarRoute = FinalizarRouteImport.update({
+  id: '/finalizar',
+  path: '/finalizar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProdutosIndexRoute = ProdutosIndexRouteImport.update({
@@ -31,30 +49,61 @@ const ProdutosSlugRoute = ProdutosSlugRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/carrinho': typeof CarrinhoRoute
+  '/encomenda': typeof EncomendaRoute
+  '/finalizar': typeof FinalizarRoute
   '/produtos/$slug': typeof ProdutosSlugRoute
   '/produtos/': typeof ProdutosIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/carrinho': typeof CarrinhoRoute
+  '/encomenda': typeof EncomendaRoute
+  '/finalizar': typeof FinalizarRoute
   '/produtos/$slug': typeof ProdutosSlugRoute
   '/produtos': typeof ProdutosIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/carrinho': typeof CarrinhoRoute
+  '/encomenda': typeof EncomendaRoute
+  '/finalizar': typeof FinalizarRoute
   '/produtos/$slug': typeof ProdutosSlugRoute
   '/produtos/': typeof ProdutosIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/produtos/$slug' | '/produtos/'
+  fullPaths:
+    | '/'
+    | '/carrinho'
+    | '/encomenda'
+    | '/finalizar'
+    | '/produtos/$slug'
+    | '/produtos/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/produtos/$slug' | '/produtos'
-  id: '__root__' | '/' | '/produtos/$slug' | '/produtos/'
+  to:
+    | '/'
+    | '/carrinho'
+    | '/encomenda'
+    | '/finalizar'
+    | '/produtos/$slug'
+    | '/produtos'
+  id:
+    | '__root__'
+    | '/'
+    | '/carrinho'
+    | '/encomenda'
+    | '/finalizar'
+    | '/produtos/$slug'
+    | '/produtos/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CarrinhoRoute: typeof CarrinhoRoute
+  EncomendaRoute: typeof EncomendaRoute
+  FinalizarRoute: typeof FinalizarRoute
   ProdutosSlugRoute: typeof ProdutosSlugRoute
   ProdutosIndexRoute: typeof ProdutosIndexRoute
 }
@@ -66,6 +115,27 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/carrinho': {
+      id: '/carrinho'
+      path: '/carrinho'
+      fullPath: '/carrinho'
+      preLoaderRoute: typeof CarrinhoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/encomenda': {
+      id: '/encomenda'
+      path: '/encomenda'
+      fullPath: '/encomenda'
+      preLoaderRoute: typeof EncomendaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/finalizar': {
+      id: '/finalizar'
+      path: '/finalizar'
+      fullPath: '/finalizar'
+      preLoaderRoute: typeof FinalizarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/produtos/': {
@@ -87,6 +157,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CarrinhoRoute: CarrinhoRoute,
+  EncomendaRoute: EncomendaRoute,
+  FinalizarRoute: FinalizarRoute,
   ProdutosSlugRoute: ProdutosSlugRoute,
   ProdutosIndexRoute: ProdutosIndexRoute,
 }
