@@ -27,7 +27,7 @@ export type Product = {
   description: string | null;
   customization_info: string | null;
   categories: { name: string; slug: string } | null;
-  product_options: [];
+  product_options: ProductOption[];
 };
 
 export type Category = {
@@ -39,7 +39,15 @@ export type Category = {
   sort_order: number;
   created_at: string;
 };
-export type ProductOption = never;
+export type ProductOption = {
+  id: string;
+  name: string;
+  kind: "select" | "text";
+  choices: Choice[];
+  required: boolean;
+  active: boolean;
+  sort_order: number;
+};
 export type Choice = { label: string; price_delta?: number };
 
 function slugify(value: string) {
