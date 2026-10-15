@@ -38,6 +38,9 @@ Deno.serve(async (req) => {
     return response({ error: "Configuração incompleta no servidor." }, 503);
   }
 
+  let admin: ReturnType<typeof createClient> | null = null;
+  let paymentRecordId: string | null = null;
+
   try {
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
@@ -53,7 +56,7 @@ Deno.serve(async (req) => {
       return response({ error: "Informe um CEP de entrega válido." }, 400);
     }
 
-    const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data: order, error: orderError } = await admin.from("pedidos")
       .select("id, numero_pedido, cliente_id, nome_cliente, email_cliente, telefone_cliente, itens, valor_total")
       .eq("id", orderId).maybeSingle();
@@ -81,9 +84,25 @@ Deno.serve(async (req) => {
     if (totalCents <= 0) return response({ error: "O total precisa ser maior que zero." }, 400);
 
     // Prevent a second active checkout for the same order.
-    const { data: active } = await admin.from("pagamentos").select("id, status")
-      .eq("pedido_id", orderId).in("status", ["iniciando", "pendente", "em_analise"]).limit(1).maybeSingle();
-    if (active) return response({ error: "Este pedido já possui uma tentativa de pagamento em andamento. Entre em contato com a equipe para verificar o status." }, 409);
+    const { data: active, error: activeError } = await admin.from("pagamentos")
+      .select("id, status, criado_em")
+      .eq("pedido_id", orderId)
+      .in("status", ["iniciando", "pendente", "em_analise"])
+      .order("criado_em", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (activeError) throw activeError;
+    if (active?.status === "iniciando" && Date.now() - new Date(active.criado_em).getTime() > 10 * 60 * 1000) {
+      // Recover abandoned attempts after an unexpected server failure. No preference URL was returned.
+      const { error: staleError } = await admin.from("pagamentos").update({
+        status: "erro",
+        status_provedor: "tentativa_expirada_recuperavel",
+        atualizado_em: new Date().toISOString(),
+      }).eq("id", active.id).eq("status", "iniciando");
+      if (staleError) throw staleError;
+    } else if (active) {
+      return response({ error: "Este pedido já possui uma tentativa de pagamento em andamento. Aguarde a confirmação ou entre em contato com a equipe." }, 409);
+    }
 
     const mpItems = items.map((item: Record<string, unknown>) => ({
       id: String(item.id),
@@ -111,6 +130,7 @@ Deno.serve(async (req) => {
       moeda: "BRL",
     }).select("id").single();
     if (insertError) throw insertError;
+    paymentRecordId = payment.id;
 
     const preferencePayload = {
       items: mpItems,
@@ -150,7 +170,16 @@ Deno.serve(async (req) => {
 
     return response({ checkout_url: preference.init_point, payment_id: payment.id });
   } catch (error) {
+    // Never leave a newly created record stuck in "iniciando" after a failed request.
+    if (admin && paymentRecordId) {
+      const { error: recoveryError } = await admin.from("pagamentos").update({
+        status: "erro",
+        status_provedor: "falha_inesperada_na_criacao",
+        atualizado_em: new Date().toISOString(),
+      }).eq("id", paymentRecordId).in("status", ["iniciando", "pendente"]);
+      if (recoveryError) console.error("Could not mark failed payment attempt", recoveryError.message);
+    }
     console.error("criar-pagamento error", error instanceof Error ? error.message : "unknown");
-    return response({ error: "Falha ao preparar o pagamento." }, 500);
+    return response({ error: "Falha ao preparar o pagamento. Você pode tentar novamente." }, 500);
   }
 });
