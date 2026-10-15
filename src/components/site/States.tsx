@@ -23,7 +23,9 @@ export function StatusBadge({ status }: { status: string }) {
     aguardando_personalizacao: "bg-ember/15 text-ember",
     aguardandoPersonalizacao: "bg-ember/15 text-ember",
     aguardando_aprovacao: "bg-magenta/15 text-magenta",
+    aguardandoAprovacao: "bg-magenta/15 text-magenta",
     em_producao: "bg-primary/20 text-primary-glow",
+    emProducao: "bg-primary/20 text-primary-glow",
     concluido: "bg-success/15 text-success",
     cancelado: "bg-destructive/15 text-destructive",
   };
@@ -31,7 +33,9 @@ export function StatusBadge({ status }: { status: string }) {
     aguardando_personalizacao: "Aguardando personalização",
     aguardandoPersonalizacao: "Aguardando personalização",
     aguardando_aprovacao: "Aguardando aprovação",
+    aguardandoAprovacao: "Aguardando aprovação",
     em_producao: "Em produção",
+    emProducao: "Em produção",
     concluido: "Concluído",
     cancelado: "Cancelado",
   };
