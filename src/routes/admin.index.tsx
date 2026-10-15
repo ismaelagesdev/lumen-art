@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -70,7 +70,7 @@ function AdminPage() {
               <article key={order.id} className="grid gap-4 rounded-2xl border border-border bg-card p-5 lg:grid-cols-[1fr_220px] lg:items-center">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="font-semibold">Pedido #{order.numero_pedido}</h2>
+                    <h2><Link to="/conta/pedidos/$id" params={{ id: order.id }} className="font-semibold underline decoration-primary/40 underline-offset-4 hover:text-primary">Pedido #{order.numero_pedido}</Link></h2>
                     <StatusBadge status={order.status} />
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">{"Pedido"} · {formatDate(order.criado_em)}</p>
