@@ -11,11 +11,13 @@
 
 **Ainda não está ativo para cobrança.** O checkout atual do site continua criando pedidos sem cobrar. Não foi executada migração no Supabase e nenhuma função foi implantada automaticamente.
 
-## Bloqueio obrigatório: frete
+## Política de frete adotada nesta etapa
 
-A política definida é **frete variável calculado por CEP**. A opção inicial recomendada é o **Melhor Envio**: a plataforma declara não cobrar mensalidade nem exigir volume mínimo e permite cotar várias transportadoras por API. Isso não garante que cada envio seja sempre o mais barato; a loja deve comparar cotações reais. Consulte a [documentação oficial de cotação](https://docs.melhorenvio.com.br/docs/cotacao-de-fretes) e as [informações comerciais](https://cotacao.melhorenvio.com.br/).
+Para destravar o checkout sem inventar dados de embalagem, a primeira versão cobra **somente os produtos** via Mercado Pago. O frete dos Correios será cotado separadamente depois da compra e comunicado ao cliente; o envio só deve ocorrer após o cliente aceitar e pagar/combinar o valor de entrega. O valor do frete não está incluído no pagamento inicial e isso deve estar explícito no checkout.
 
-O CEP de origem informado é `18530-000`. O backend bloqueia o pagamento até que exista um token válido do Melhor Envio e especificações reais das embalagens de cada produto (largura, altura, comprimento em cm e peso em kg). Esses dados não existem no catálogo atual e não devem ser estimados.
+O CEP de origem informado é `18530-000`. A cotação manual permite começar sem integração automática de transportadora, token de frete ou dimensões/peso cadastrados no site. Quando a loja tiver os dados reais das embalagens e acesso adequado às APIs, a cotação automática poderá ser adicionada.
+
+A API oficial de preços dos Correios também exige peso e, para pacotes, dimensões; seu acesso é restrito a clientes com contrato e permissão de API. Trocar diretamente para essa API não elimina os dados de embalagem. Consulte o [manual oficial de preço](https://www.correios.com.br/atendimento/developers/manuais/manual-api-preco-1) e a [página oficial de desenvolvedores](https://www.correios.com.br/atendimento/developers).
 
 ## Configuração necessária no projeto Supabase
 
@@ -25,18 +27,15 @@ O CEP de origem informado é `18530-000`. O backend bloqueia o pagamento até qu
    - `MERCADOPAGO_ACCESS_TOKEN`: Access Token de teste primeiro; trocar para produção somente após homologação.
    - `MERCADOPAGO_WEBHOOK_SECRET`: chave secreta de assinatura de webhook gerada/configurada no painel de integrações do Mercado Pago.
    - `SITE_URL`: URL HTTPS pública real do site.
-   - `LUMEN_SHIPPING_MODE=cep`.
+   - `LUMEN_SHIPPING_MODE=manual_after_payment`.
    - `LUMEN_ORIGIN_CEP=18530-000`.
-   - `MELHORENVIO_ACCESS_TOKEN`: token OAuth criado no painel do Melhor Envio; usar sandbox primeiro.
-   - `LUMEN_SHIPPING_PRODUCT_SPECS`: JSON com especificações reais por ID de produto: `width`, `height`, `length` (cm) e `weight` (kg).
-   - `LUMEN_SHIPPING_USER_AGENT`: nome da aplicação e contato técnico, exigido pela API.
 4. As variáveis `SUPABASE_URL`, `SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY` são usadas pelo runtime da função; a chave service role nunca deve ser enviada ao navegador.
 5. Configurar a URL de webhook como `https://<PROJECT_REF>.supabase.co/functions/v1/mercado-pago-webhook` no painel do Mercado Pago.
 6. Fazer um pagamento de teste aprovado, recusado e pendente; testar notificação duplicada, assinatura inválida, valor divergente e retorno sem webhook.
 
 ## Integração frontend e trabalho restante
 
-O checkout chama `supabase.functions.invoke("criar-pagamento", { body: { order_id, destination_cep } })` depois de criar o pedido. No estado atual, a função bloqueia a cobrança de forma intencional até que o provedor de frete por CEP esteja efetivamente integrado; não retorna `checkout_url` sem uma cotação validada. Se a função não estiver pronta, o pedido permanece registrado e o cliente é encaminhado aos detalhes. A página de retorno é informativa; ela não declara o pagamento aprovado. Ainda falta disponibilizar uma consulta autenticada do estado de pagamento para o cliente e testar ponta a ponta depois de implantar migração e funções.
+O checkout chama `supabase.functions.invoke("criar-pagamento", { body: { order_id, destination_cep } })` depois de criar o pedido. Com `LUMEN_SHIPPING_MODE=manual_after_payment`, a função cobra somente o total oficial dos produtos; o frete não é incluído. A equipe deve cotar os Correios, comunicar o valor e obter a aceitação do cliente antes de despachar. Se a função não estiver pronta, o pedido permanece registrado e o cliente é encaminhado aos detalhes. A página de retorno é informativa; ela não declara o pagamento aprovado. Ainda falta disponibilizar uma consulta autenticada do estado de pagamento para o cliente e testar ponta a ponta depois de implantar migração e funções.
 
 ## Fontes oficiais
 
@@ -48,7 +47,7 @@ O checkout chama `supabase.functions.invoke("criar-pagamento", { body: { order_i
 
 ## Bloqueios operacionais específicos do frete
 
-A documentação oficial do Melhor Envio exige CEPs de origem/destino e dados reais dos produtos ou volumes; recomenda utilizar `custom_price` e `custom_delivery_time` quando retornados. A cotação deve ser apresentada ao comprador antes de confirmar o pagamento, e a opção escolhida e o valor cotado devem ser preservados para evitar divergência. Até haver dimensões/peso reais, token do provedor e uma etapa de checkout que apresente as opções, o sistema não deve criar uma preferência de pagamento.
+A documentação oficial do Melhor Envio exige CEPs de origem/destino e dados reais dos produtos ou volumes; recomenda utilizar `custom_price` e `custom_delivery_time` quando retornados. A cotação deve ser apresentada ao comprador antes de confirmar o pagamento, e a opção escolhida e o valor cotado devem ser preservados para evitar divergência. Para a primeira versão, a cotação automática foi adiada: o pagamento inicial inclui somente os produtos e o frete será tratado separadamente. Uma futura cotação automática exigirá dimensões/peso reais e acesso ao provedor.
 
 - [API oficial — cálculo de fretes](https://docs.melhorenvio.com.br/reference/calculo-de-fretes-por-produtos)
 - [API oficial — introdução à integração](https://docs.melhorenvio.com.br/docs/introducao-a-integracao)
