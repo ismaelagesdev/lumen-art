@@ -28,6 +28,12 @@ Confirme que o banco ativo contém as tabelas e colunas compatíveis com os tipo
 - `order_items`
 - `messages`
 
+As migrações do repositório incluem:
+- `0001_security_hardening.sql` — impede que novos cadastros recebam automaticamente o papel administrativo.
+- `0002_seed_initial_products.sql` — cadastra, se ainda não existirem, os dois kits confirmados: Kit Premium de Sinuca (R$ 140,00) e Kit Premium de Truco (R$ 146,30). As imagens começam vazias e precisam ser enviadas ao bucket e vinculadas aos produtos.
+
+**Antes de aplicar SQL em um projeto existente, confira o histórico e o esquema no Supabase.** A migração inicial `0000_lumen_core.sql` cria as tabelas e funções e não deve ser executada novamente sobre tabelas já existentes. Aplique apenas as migrações pendentes, de acordo com o estado real do banco.
+
 O código também chama as funções RPC:
 
 - `create_order` — cria pedido e itens; o servidor precisa recalcular preços a partir dos produtos/opções atuais, sem confiar em preços enviados pelo navegador.
@@ -51,6 +57,7 @@ Verifique políticas de leitura/escrita. Anexos de pedidos não devem ser public
 - Clientes autenticados só podem consultar e alterar seus próprios dados e pedidos.
 - A equipe administrativa deve ser autorizada por uma política/função do banco; ocultar o painel no frontend não é controle de segurança.
 - Impedir que usuários comuns atribuam a si mesmos o papel `admin`.
+- Revisar os registros existentes em `user_roles`: a migração inicial antiga promovia o primeiro cadastro a administrador. Preserve apenas as contas administrativas confiáveis.
 - RPCs de criação de pedidos devem validar quantidades, produtos ativos, opções válidas, preços e totais no servidor, idealmente dentro de uma transação.
 - Proteger mensagens e anexos por pedido.
 - Não armazenar chaves secretas no navegador ou no repositório.
