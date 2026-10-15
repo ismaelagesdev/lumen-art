@@ -24,11 +24,11 @@ function AccountPage() {
     queryKey: ["my-orders", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("orders")
-        .select("id, number, kind, status, total, created_at")
-        .eq("user_id", user!.id)
-        .order("created_at", { ascending: false });
+      const { data, error } = await (supabase as any)
+        .from("pedidos")
+        .select("id, numero_pedido, status, valor_total, criado_em")
+        .eq("cliente_id", user!.id)
+        .order("criado_em", { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -57,13 +57,13 @@ function AccountPage() {
                 <div className="flex items-start gap-3">
                   <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-secondary"><PackageSearch className="h-5 w-5 text-primary-glow" aria-hidden /></span>
                   <div>
-                    <p className="font-semibold">Pedido #{order.number}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">{order.kind === "encomenda" ? "Projeto sob encomenda" : "Compra"} · {formatDate(order.created_at)}</p>
+                    <p className="font-semibold">Pedido #{order.numero_pedido}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{"Pedido"} · {formatDate(order.criado_em)}</p>
                     <div className="mt-2"><StatusBadge status={order.status} /></div>
                   </div>
                 </div>
                 <div className="flex items-center justify-between gap-4 sm:justify-end">
-                  <span className="font-semibold">{formatBRL(order.total)}</span>
+                  <span className="font-semibold">{formatBRL(order.valor_total)}</span>
                   <ArrowRight className="h-4 w-4 text-muted-foreground" aria-hidden />
                 </div>
               </Link>
