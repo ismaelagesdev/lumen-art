@@ -26,21 +26,11 @@ function OrderDetailsPage() {
     queryKey: ["order", id, user?.id],
     enabled: !!user && !!id,
     queryFn: async () => {
-      const { data, error } = await supabase.from("orders").select("*").eq("id", id).eq("user_id", user!.id).maybeSingle();
+      const { data, error } = await (supabase as any).from("pedidos").select("*").eq("id", id).eq("cliente_id", user!.id).maybeSingle();
       if (error) throw error;
       return data;
     },
   });
-  const items = useQuery({
-    queryKey: ["order-items", id, user?.id],
-    enabled: !!user && !!id,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("order_items").select("*").eq("order_id", id);
-      if (error) throw error;
-      return data;
-    },
-  });
-
   return (
     <RequireAuth>
       <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
@@ -51,8 +41,8 @@ function OrderDetailsPage() {
           <Empty title="Pedido não encontrado">Este pedido não existe ou você não tem permissão para visualizá-lo.</Empty>
         ) : (
           <>
-            <PageHeader eyebrow={order.data.kind === "encomenda" ? "Projeto sob encomenda" : "Compra"} title={`Pedido #${order.data.number}`}>
-              Criado em {formatDate(order.data.created_at)}.
+            <PageHeader eyebrow={"Pedido"} title={`Pedido #${order.data.numero_pedido}`}>
+              Criado em {formatDate(order.data.criado_em)}.
             </PageHeader>
             <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
               <div className="space-y-6">
@@ -65,29 +55,29 @@ function OrderDetailsPage() {
                     A equipe atualizará o status e poderá solicitar informações adicionais pelo atendimento abaixo.
                   </p>
                 </section>
+                {order.data.observacoes && <section className="rounded-2xl border border-border bg-card p-5"><h2 className="font-semibold">Observações e entrega</h2><p className="mt-3 whitespace-pre-line break-words text-sm text-muted-foreground">{order.data.observacoes}</p></section>}
                 <OrderChat orderId={id} />
               </div>
               <aside className="h-fit space-y-4 rounded-2xl border border-border bg-card p-5">
                 <h2 className="font-semibold">Resumo do pedido</h2>
-                {items.isLoading ? <Loading label="Carregando itens..." /> : items.error ? (
-                  <p className="text-sm text-muted-foreground">Não foi possível carregar os itens.</p>
-                ) : items.data?.length ? (
+                {Array.isArray(order.data.itens) && order.data.itens.length ? (
                   <ul className="space-y-3">
-                    {items.data.map((item) => (
-                      <li key={item.id} className="flex gap-3 text-sm">
+                    {order.data.itens.map((item: { id?: number; nome?: string; quantidade?: number; preco?: number; subtotal?: number; cor?: string | null; personalizado?: boolean }, index: number) => (
+                      <li key={`${item.id ?? "item"}-${index}`} className="flex gap-3 text-sm">
                         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-secondary"><Package className="h-4 w-4" aria-hidden /></span>
                         <div className="min-w-0 flex-1">
-                          <p className="font-medium">{item.quantity}× {item.product_name}</p>
-                          <p className="text-xs text-muted-foreground">{formatBRL(item.unit_price)} cada</p>
-                          <p className="text-sm">{formatBRL(item.line_total)}</p>
+                          <p className="font-medium">{item.quantidade ?? 1}× {item.nome ?? "Produto"}</p>
+                          {item.cor && <p className="text-xs text-muted-foreground">{item.cor}</p>}
+                          <p className="text-xs text-muted-foreground">{formatBRL(item.preco ?? 0)} cada</p>
+                          <p className="text-sm">{formatBRL(item.subtotal ?? Number(item.preco ?? 0) * Number(item.quantidade ?? 1))}</p>
                         </div>
                       </li>
                     ))}
                   </ul>
                 ) : <p className="text-sm text-muted-foreground">Nenhum item detalhado neste pedido.</p>}
                 <div className="space-y-2 border-t border-border pt-4 text-sm">
-                  <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatBRL(order.data.subtotal)}</span></div>
-                  <div className="flex justify-between text-base font-semibold"><span>Total estimado</span><span>{formatBRL(order.data.total)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatBRL(order.data.valor_total)}</span></div>
+                  <div className="flex justify-between text-base font-semibold"><span>Total do pedido</span><span>{formatBRL(order.data.valor_total)}</span></div>
                   <p className="text-xs text-muted-foreground">Frete e forma de pagamento são confirmados pela equipe antes da conclusão.</p>
                 </div>
               </aside>
