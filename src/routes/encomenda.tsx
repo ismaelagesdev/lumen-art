@@ -51,11 +51,15 @@ function RequestForm() {
 
   const onFiles = (list: FileList | null) => {
     const arr = Array.from(list ?? []);
+    if (arr.length > 5) {
+      toast.error("Envie no máximo 5 arquivos por solicitação.");
+      return;
+    }
     for (const f of arr) {
       const err = validateUpload(f);
       if (err) { toast.error(`${f.name}: ${err}`); return; }
     }
-    setFiles(arr.slice(0, 5));
+    setFiles(arr);
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -73,8 +77,19 @@ function RequestForm() {
       if (error) throw error;
       const pedido = data as { id?: string; numero_pedido?: string };
       if (!pedido?.id) throw new Error("O banco não retornou o identificador do pedido.");
-      for (const f of files) await uploadAttachment(pedido.id, f, user!.id, false);
-      toast.success("Solicitação enviada! A equipe responderá pelo atendimento do pedido.");
+      let failedUploads = 0;
+      for (const f of files) {
+        try {
+          await uploadAttachment(pedido.id, f, user!.id, false);
+        } catch {
+          failedUploads += 1;
+        }
+      }
+      if (failedUploads > 0) {
+        toast.warning(`Solicitação criada, mas ${failedUploads} arquivo(s) não foram enviados. Você pode tentar anexá-los novamente no atendimento do pedido.`);
+      } else {
+        toast.success("Solicitação enviada! A equipe responderá pelo atendimento do pedido.");
+      }
       navigate({ to: "/conta/pedidos/$id", params: { id: pedido.id } });
     } catch (err) {
       toast.error(errorMessage(err));
