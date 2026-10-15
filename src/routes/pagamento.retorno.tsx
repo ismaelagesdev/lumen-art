@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/site/States";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/pagamento/retorno")({
+  validateSearch: (search: Record<string, unknown>) => ({ status: typeof search.status === "string" ? search.status : "" }),
   head: () => ({
     meta: [
       { title: "Retorno do pagamento — Lumen Print" },
@@ -14,8 +15,7 @@ export const Route = createFileRoute("/pagamento/retorno")({
 });
 
 function PaymentReturnPage() {
-  const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search);
-  const status = params.get("status");
+  const { status } = Route.useSearch();
   const pending = status === "pending";
   const failure = status === "failure";
 
