@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Box, Minus, Plus } from "lucide-react";
+import { Box, Minus, Plus, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { productQuery, useImageUrls, type Choice } from "@/lib/catalog";
 import { formatBRL } from "@/lib/format";
@@ -24,7 +24,7 @@ export const Route = createFileRoute("/produtos/$slug")({
 
 function ProductPage() {
   const { slug } = Route.useParams();
-  const { data: p, isLoading } = useQuery(productQuery(slug));
+  const { data: p, isLoading, isError, refetch } = useQuery(productQuery(slug));
   const { data: urls = {} } = useImageUrls(p?.images ?? []);
   const [active, setActive] = useState(0);
   const [qty, setQty] = useState(1);
