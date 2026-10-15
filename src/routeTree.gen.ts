@@ -12,9 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CarrinhoRouteImport } from './routes/carrinho'
 import { Route as EncomendaRouteImport } from './routes/encomenda'
+import { Route as EntrarRouteImport } from './routes/entrar'
 import { Route as FinalizarRouteImport } from './routes/finalizar'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as ContaIndexRouteImport } from './routes/conta.index'
 import { Route as ProdutosIndexRouteImport } from './routes/produtos.index'
 import { Route as ProdutosSlugRouteImport } from './routes/produtos.$slug'
+import { Route as ContaPedidosIdRouteImport } from './routes/conta.pedidos.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -31,9 +35,24 @@ const EncomendaRoute = EncomendaRouteImport.update({
   path: '/encomenda',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EntrarRoute = EntrarRouteImport.update({
+  id: '/entrar',
+  path: '/entrar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FinalizarRoute = FinalizarRouteImport.update({
   id: '/finalizar',
   path: '/finalizar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContaIndexRoute = ContaIndexRouteImport.update({
+  id: '/conta/',
+  path: '/conta/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProdutosIndexRoute = ProdutosIndexRouteImport.update({
@@ -46,31 +65,48 @@ const ProdutosSlugRoute = ProdutosSlugRouteImport.update({
   path: '/produtos/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContaPedidosIdRoute = ContaPedidosIdRouteImport.update({
+  id: '/conta/pedidos/$id',
+  path: '/conta/pedidos/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/carrinho': typeof CarrinhoRoute
   '/encomenda': typeof EncomendaRoute
+  '/entrar': typeof EntrarRoute
   '/finalizar': typeof FinalizarRoute
   '/produtos/$slug': typeof ProdutosSlugRoute
+  '/admin/': typeof AdminIndexRoute
+  '/conta/': typeof ContaIndexRoute
   '/produtos/': typeof ProdutosIndexRoute
+  '/conta/pedidos/$id': typeof ContaPedidosIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/carrinho': typeof CarrinhoRoute
   '/encomenda': typeof EncomendaRoute
+  '/entrar': typeof EntrarRoute
   '/finalizar': typeof FinalizarRoute
   '/produtos/$slug': typeof ProdutosSlugRoute
+  '/admin': typeof AdminIndexRoute
+  '/conta': typeof ContaIndexRoute
   '/produtos': typeof ProdutosIndexRoute
+  '/conta/pedidos/$id': typeof ContaPedidosIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/carrinho': typeof CarrinhoRoute
   '/encomenda': typeof EncomendaRoute
+  '/entrar': typeof EntrarRoute
   '/finalizar': typeof FinalizarRoute
   '/produtos/$slug': typeof ProdutosSlugRoute
+  '/admin/': typeof AdminIndexRoute
+  '/conta/': typeof ContaIndexRoute
   '/produtos/': typeof ProdutosIndexRoute
+  '/conta/pedidos/$id': typeof ContaPedidosIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -78,34 +114,50 @@ export interface FileRouteTypes {
     | '/'
     | '/carrinho'
     | '/encomenda'
+    | '/entrar'
     | '/finalizar'
     | '/produtos/$slug'
+    | '/admin/'
+    | '/conta/'
     | '/produtos/'
+    | '/conta/pedidos/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/carrinho'
     | '/encomenda'
+    | '/entrar'
     | '/finalizar'
     | '/produtos/$slug'
+    | '/admin'
+    | '/conta'
     | '/produtos'
+    | '/conta/pedidos/$id'
   id:
     | '__root__'
     | '/'
     | '/carrinho'
     | '/encomenda'
+    | '/entrar'
     | '/finalizar'
     | '/produtos/$slug'
+    | '/admin/'
+    | '/conta/'
     | '/produtos/'
+    | '/conta/pedidos/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CarrinhoRoute: typeof CarrinhoRoute
   EncomendaRoute: typeof EncomendaRoute
+  EntrarRoute: typeof EntrarRoute
   FinalizarRoute: typeof FinalizarRoute
   ProdutosSlugRoute: typeof ProdutosSlugRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+  ContaIndexRoute: typeof ContaIndexRoute
   ProdutosIndexRoute: typeof ProdutosIndexRoute
+  ContaPedidosIdRoute: typeof ContaPedidosIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -131,11 +183,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EncomendaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/entrar': {
+      id: '/entrar'
+      path: '/entrar'
+      fullPath: '/entrar'
+      preLoaderRoute: typeof EntrarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/finalizar': {
       id: '/finalizar'
       path: '/finalizar'
       fullPath: '/finalizar'
       preLoaderRoute: typeof FinalizarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/conta/': {
+      id: '/conta/'
+      path: '/conta'
+      fullPath: '/conta/'
+      preLoaderRoute: typeof ContaIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/produtos/': {
@@ -152,6 +225,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProdutosSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/conta/pedidos/$id': {
+      id: '/conta/pedidos/$id'
+      path: '/conta/pedidos/$id'
+      fullPath: '/conta/pedidos/$id'
+      preLoaderRoute: typeof ContaPedidosIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -159,9 +239,13 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CarrinhoRoute: CarrinhoRoute,
   EncomendaRoute: EncomendaRoute,
+  EntrarRoute: EntrarRoute,
   FinalizarRoute: FinalizarRoute,
   ProdutosSlugRoute: ProdutosSlugRoute,
+  AdminIndexRoute: AdminIndexRoute,
+  ContaIndexRoute: ContaIndexRoute,
   ProdutosIndexRoute: ProdutosIndexRoute,
+  ContaPedidosIdRoute: ContaPedidosIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
