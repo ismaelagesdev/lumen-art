@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
-import { Search } from "lucide-react";
+import { RefreshCw, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { categoriesQuery, productsQuery, useImageUrls } from "@/lib/catalog";
 import { ProductCard } from "@/components/site/ProductCard";
 import { Empty, Loading, PageHeader } from "@/components/site/States";
@@ -31,7 +32,7 @@ function Catalog() {
   const s = Route.useSearch();
   const navigate = useNavigate({ from: "/produtos/" });
   const set = (patch: Partial<z.infer<typeof search>>) => navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true });
-  const { data: products, isLoading, error } = useQuery(productsQuery);
+  const { data: products, isLoading, error, refetch, isFetching } = useQuery(productsQuery);
   const { data: categories = [] } = useQuery(categoriesQuery);
 
   const q = (s.q ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -83,7 +84,13 @@ function Catalog() {
       {isLoading ? (
         <Loading label="Carregando produtos..." />
       ) : error ? (
-        <Empty title="Não foi possível carregar o catálogo">Tente novamente em instantes.</Empty>
+        <Empty title="Não foi possível carregar o catálogo">
+          <p>Não conseguimos consultar os produtos agora. Verifique a conexão e tente novamente.</p>
+          <Button className="mt-4" variant="outline" onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+            {isFetching ? "Tentando novamente..." : "Tentar novamente"}
+          </Button>
+        </Empty>
       ) : list.length === 0 ? (
         <Empty title="Nenhum produto encontrado">Ajuste os filtros ou solicite um projeto sob encomenda.</Empty>
       ) : (
