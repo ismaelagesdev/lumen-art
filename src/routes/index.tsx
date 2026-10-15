@@ -22,7 +22,7 @@ function Index() {
   const { data: products = [] } = useQuery(productsQuery);
   const { data: categories = [] } = useQuery(categoriesQuery);
   const featured = (products.filter((p) => p.featured).length ? products.filter((p) => p.featured) : products).slice(0, 8);
-  const { data: urls = {} } = useImageUrls(featured.map((p) => p.images[0]).filter(Boolean));
+  const { data: urls = {} } = useImageUrls(featured.map((p) => p.images[0]).filter(Boolean) as string[]);
 
   return (
     <>
@@ -82,7 +82,7 @@ function Index() {
         {featured.length ? (
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             {featured.map((p) => (
-              <ProductCard key={p.id} slug={p.slug} name={p.name} price={p.price} category={p.categories?.name} imageUrl={urls[p.images[0]]} madeToOrder={p.made_to_order} />
+              <ProductCard key={p.id} slug={p.slug} name={p.name} price={p.price} category={p.categories?.name} imageUrl={urls[p.images[0] ?? ""]} madeToOrder={p.made_to_order} />
             ))}
           </div>
         ) : (

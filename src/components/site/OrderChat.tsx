@@ -66,7 +66,7 @@ export function OrderChat({ orderId }: { orderId: string }) {
     setBusy(true);
     const { error } = await supabase.from("messages").insert({ order_id: orderId, sender_id: user.id, from_staff: isAdmin, body: body.slice(0, 4000) });
     setBusy(false);
-    if (error) return toast.error(errorMessage(error));
+    if (error) { toast.error(errorMessage(error)); return; }
     setText("");
     qc.invalidateQueries({ queryKey: key });
   };
@@ -87,7 +87,7 @@ export function OrderChat({ orderId }: { orderId: string }) {
 
   const open = async (path: string) => {
     const { data, error } = await supabase.storage.from("attachments").createSignedUrl(path, 300);
-    if (error || !data) return toast.error("Não foi possível abrir o arquivo.");
+    if (error || !data) { toast.error("Não foi possível abrir o arquivo."); return; }
     window.open(data.signedUrl, "_blank", "noopener");
   };
 

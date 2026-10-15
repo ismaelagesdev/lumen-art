@@ -51,7 +51,7 @@ function Catalog() {
     if (ordem === "maior") return (b.price ?? -1) - (a.price ?? -1);
     return 0;
   });
-  const { data: urls = {} } = useImageUrls(list.map((p) => p.images[0]).filter(Boolean));
+  const { data: urls = {} } = useImageUrls(list.map((p) => p.images[0]).filter(Boolean) as string[]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
@@ -89,7 +89,7 @@ function Catalog() {
       ) : (
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
           {list.map((p) => (
-            <ProductCard key={p.id} slug={p.slug} name={p.name} price={p.price} category={p.categories?.name} imageUrl={urls[p.images[0]]} madeToOrder={p.made_to_order} />
+            <ProductCard key={p.id} slug={p.slug} name={p.name} price={p.price} category={p.categories?.name} imageUrl={urls[p.images[0] ?? ""]} madeToOrder={p.made_to_order} />
           ))}
         </div>
       )}
