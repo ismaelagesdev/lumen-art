@@ -17,7 +17,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .from("perfis")
           .select("papel")
           .eq("id", session.user.id)
-          .eq("papel", "admin")
+          .in("papel", ["equipe", "admin"])
           .maybeSingle();
         isAdmin = !!data;
       }
