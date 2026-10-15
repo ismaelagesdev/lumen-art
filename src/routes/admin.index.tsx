@@ -22,7 +22,6 @@ const statuses = [
   { value: "aguardandoAprovacao", label: "Aguardando aprovação" },
   { value: "emProducao", label: "Em produção" },
   { value: "concluido", label: "Concluído" },
-  { value: "cancelado", label: "Cancelado" },
 ] as const;
 
 function AdminPage() {
