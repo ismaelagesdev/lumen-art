@@ -6,6 +6,8 @@
 - Edge Function `criar-pagamento`: exige sessão autenticada, confere a propriedade do pedido, valida o total usando o pedido salvo no Supabase, cria preferência Checkout Pro no servidor e mantém o Access Token fora do navegador.
 - Edge Function `mercado-pago-webhook`: valida a assinatura HMAC da notificação, consulta o pagamento diretamente na API do Mercado Pago, compara moeda e valor, e atualiza o mesmo registro de forma idempotente.
 - O webhook não confia na página de retorno do navegador como prova de pagamento. A tabela de pagamento é separada do status de produção do pedido.
+- O checkout agora tenta iniciar a preferência após criar o pedido. Se a função estiver indisponível ou o frete não estiver configurado, preserva o pedido e leva o cliente aos detalhes sem fingir que houve cobrança.
+- A página `/pagamento/retorno` explica que o retorno do navegador não confirma pagamento.
 
 **Ainda não está ativo para cobrança.** O checkout atual do site continua criando pedidos sem cobrar. Não foi executada migração no Supabase e nenhuma função foi implantada automaticamente.
 
@@ -30,9 +32,9 @@ Não configure nenhuma dessas opções até a regra comercial ser confirmada. Pa
 5. Configurar a URL de webhook como `https://<PROJECT_REF>.supabase.co/functions/v1/mercado-pago-webhook` no painel do Mercado Pago.
 6. Fazer um pagamento de teste aprovado, recusado e pendente; testar notificação duplicada, assinatura inválida, valor divergente e retorno sem webhook.
 
-## Próximo passo para conectar o frontend
+## Integração frontend e trabalho restante
 
-Quando frete e credenciais estiverem configurados, o checkout poderá chamar `supabase.functions.invoke("criar-pagamento", { body: { order_id } })` depois de criar o pedido e redirecionar para `checkout_url`. A interface de retorno deverá consultar o status no backend e nunca considerar o parâmetro da URL como confirmação de pagamento.
+O checkout já chama `supabase.functions.invoke("criar-pagamento", { body: { order_id } })` depois de criar o pedido e redireciona para `checkout_url` quando a função retorna uma URL válida. Se a função não estiver pronta, o pedido permanece registrado e o cliente é encaminhado aos detalhes. A página de retorno é informativa; ela não declara o pagamento aprovado. Ainda falta disponibilizar uma consulta autenticada do estado de pagamento para o cliente e testar ponta a ponta depois de implantar migração e funções.
 
 ## Fontes oficiais
 
