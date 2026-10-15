@@ -85,7 +85,7 @@ function RequestForm() {
 
   return (
     <form onSubmit={submit} className="space-y-5 rounded-2xl border border-border bg-card p-6">
-      {produto && <p className="text-sm text-muted-foreground">Solicitação vinculada ao produto selecionado no catálogo.</p>}
+      <div className="space-y-2"><Label htmlFor="produto">Produto de referência</Label><select id="produto" required value={selectedProduct} onChange={(e) => setSelectedProduct(e.target.value)} disabled={products.isLoading || !!products.error} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="">{products.isLoading ? "Carregando produtos..." : "Selecione um produto"}</option>{(products.data ?? []).map((p) => <option key={p.id} value={p.id}>{p.name} — {p.price == null ? "Sob consulta" : new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(p.price)}</option>)}</select>{products.error && <p className="text-sm text-destructive">Não foi possível carregar o catálogo. Recarregue a página e tente novamente.</p>}<p className="text-xs text-muted-foreground">O valor exibido no pedido é uma referência inicial; a equipe avaliará a personalização descrita abaixo.</p></div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="nome">Nome completo</Label>
@@ -107,7 +107,7 @@ function RequestForm() {
         </label>
         <input id="arquivos" type="file" multiple className="sr-only" accept=".jpg,.jpeg,.png,.webp,.svg,.pdf" onChange={(e) => onFiles(e.target.files)} />
       </div>
-      <Button type="submit" size="lg" disabled={busy}>{busy ? "Enviando..." : "Enviar solicitação"}</Button>
+      <Button type="submit" size="lg" disabled={busy || products.isLoading || !!products.error || !selectedProduct}>{busy ? "Enviando..." : "Enviar solicitação"}</Button>
       <p className="text-xs text-muted-foreground">
         Os valores são definidos após a análise do projeto. Acompanhe tudo em <Link to="/conta" className="underline">Minha conta</Link>.
       </p>
