@@ -9,6 +9,8 @@ export type Choice = { label: string; price_delta?: number };
 
 export const categoriesQuery = queryOptions({
   queryKey: ["categories"],
+  retry: 1,
+  retryDelay: 1000,
   queryFn: async () => {
     const { data, error } = await supabase.from("categories").select("*").eq("active", true).order("sort_order");
     if (error) throw error;
@@ -18,6 +20,8 @@ export const categoriesQuery = queryOptions({
 
 export const productsQuery = queryOptions({
   queryKey: ["products"],
+  retry: 1,
+  retryDelay: 1000,
   queryFn: async () => {
     const { data, error } = await supabase
       .from("products")
@@ -32,6 +36,8 @@ export const productsQuery = queryOptions({
 export const productQuery = (slug: string) =>
   queryOptions({
     queryKey: ["product", slug],
+    retry: 1,
+    retryDelay: 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
@@ -48,6 +54,8 @@ export const productQuery = (slug: string) =>
 export function useImageUrls(paths: string[]) {
   return useQuery({
     queryKey: ["img", paths],
+    retry: 1,
+    retryDelay: 1000,
     enabled: paths.length > 0,
     staleTime: 1000 * 60 * 50,
     queryFn: async () => {
