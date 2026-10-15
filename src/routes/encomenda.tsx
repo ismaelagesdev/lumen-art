@@ -62,16 +62,20 @@ function RequestForm() {
     e.preventDefault();
     setBusy(true);
     try {
-      const { data: id, error } = await supabase.rpc("create_custom_request", {
-        _description: desc,
-        _customer_name: name,
-        _customer_phone: phone,
-        _product_id: produto ?? null,
-      } as never);
+      if (!selectedProduct) throw new Error("Selecione um produto de referência.");
+      const { data, error } = await (supabase as any).rpc("criar_pedido", {
+        p_nome_cliente: name,
+        p_email_cliente: user?.email ?? null,
+        p_telefone_cliente: phone,
+        p_observacoes: "SOLICITAÇÃO SOB ENCOMENDA | Produto de referência: " + selectedProduct + "\nDescrição: " + desc,
+        p_itens: [{ id: selectedProduct, quantidade: 1, cor: null, personalizado: true }],
+      });
       if (error) throw error;
-      for (const f of files) await uploadAttachment(id as string, f, user!.id, false);
+      const pedido = data as { id?: string; numero_pedido?: string };
+      if (!pedido?.id) throw new Error("O banco não retornou o identificador do pedido.");
+      for (const f of files) await uploadAttachment(pedido.id, f, user!.id, false);
       toast.success("Solicitação enviada! A equipe responderá pelo atendimento do pedido.");
-      navigate({ to: "/conta/pedidos/$id", params: { id: id as string } });
+      navigate({ to: "/conta/pedidos/$id", params: { id: pedido.id } });
     } catch (err) {
       toast.error(errorMessage(err));
     } finally {
