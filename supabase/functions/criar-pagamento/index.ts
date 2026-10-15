@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
     if (itemsCents <= 0 || itemsCents !== cents(order.valor_total)) {
       return response({ error: "O valor dos itens não confere com o pedido. Solicite revisão da equipe." }, 409);
     }
-    // Reached only after a verified provider quote has been implemented above.
+    // The initial Mercado Pago charge covers products only; shipping is agreed separately.
     const shippingCents = 0;
     const totalCents = itemsCents + shippingCents;
     if (totalCents <= 0) return response({ error: "O total precisa ser maior que zero." }, 400);
