@@ -102,7 +102,7 @@ function Checkout() {
       // The order is persisted first. If payment setup is unavailable, preserve the order
       // and route the customer to it instead of inviting them to submit a duplicate.
       const { data: paymentData, error: paymentError } = await supabase.functions.invoke("criar-pagamento", {
-        body: { order_id: pedido.id, destination_cep: f.cep.replace(/\\D/g, "") },
+        body: { order_id: pedido.id, destination_cep: f.cep.replace(/\D/g, "") },
       });
       cart.clear();
       if (paymentError || !paymentData?.checkout_url) {
