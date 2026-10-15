@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useCart } from "@/hooks/use-cart";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";\nimport { toast } from "sonner";
 
 export function Logo() {
   return (
@@ -22,7 +22,7 @@ export function Logo() {
 const nav = [
   { to: "/produtos", label: "Catálogo" },
   { to: "/encomenda", label: "Sob encomenda" },
-  { to: "/conta", label: "Atendimento" },
+  { to: "/conta", label: "Minha conta" },
 ] as const;
 
 export function Header() {
