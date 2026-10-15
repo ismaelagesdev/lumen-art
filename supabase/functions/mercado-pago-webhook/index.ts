@@ -6,7 +6,7 @@ function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: corsHeaders });
 }
 
-async function verifySignature(req: Request, paymentId: string, secret: string) {
+async function verifySignature(req: Request, dataId: string, secret: string) {
   const signature = req.headers.get("x-signature") ?? "";
   const requestId = req.headers.get("x-request-id") ?? "";
   const parts = Object.fromEntries(signature.split(",").map((part) => {
@@ -16,8 +16,12 @@ async function verifySignature(req: Request, paymentId: string, secret: string) 
   const ts = parts.ts;
   const received = parts.v1;
   if (!ts || !received || !requestId || !/^\d+$/.test(ts)) return false;
+  // Reject stale signed requests to reduce replay risk (Mercado Pago timestamps are Unix seconds).
+  const timestamp = Number(ts);
+  if (!Number.isSafeInteger(timestamp) || Math.abs(Date.now() / 1000 - timestamp) > 10 * 60) return false;
+  if (!dataId || !/^[a-zA-Z0-9]+$/.test(dataId)) return false;
 
-  const manifest = `id:${paymentId.toLowerCase()};request-id:${requestId};ts:${ts};`;
+  const manifest = `id:${dataId.toLowerCase()};request-id:${requestId};ts:${ts};`;
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   const digest = new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(manifest)));
   const expected = Array.from(digest, (b) => b.toString(16).padStart(2, "0")).join("");
@@ -38,15 +42,20 @@ Deno.serve(async (req) => {
   try {
     const url = new URL(req.url);
     const body = await req.json().catch(() => ({}));
-    const topicId = url.searchParams.get("data.id") ?? url.searchParams.get("id") ?? body?.data?.id ?? body?.id;
+    const queryDataId = url.searchParams.get("data.id");
+    const bodyDataId = body?.data?.id;
     const topic = url.searchParams.get("type") ?? body?.type ?? body?.topic;
-    if (topic !== "payment" || (typeof topicId !== "string" && typeof topicId !== "number")) {
+    if (topic !== "payment") {
       // Acknowledge unrelated Mercado Pago notifications without processing them.
       return json({ received: true });
     }
-    const paymentId = String(topicId);
+    // Signature verification must use the data.id query parameter included in Mercado Pago's manifest.
+    if (!queryDataId || (bodyDataId !== undefined && String(bodyDataId).toLowerCase() !== queryDataId.toLowerCase())) {
+      return json({ error: "Identificador da notificação ausente ou divergente." }, 400);
+    }
+    const paymentId = queryDataId;
     if (!/^\d{1,30}$/.test(paymentId)) return json({ error: "Identificador inválido." }, 400);
-    if (!await verifySignature(req, paymentId, secret)) return json({ error: "Assinatura inválida." }, 401);
+    if (!await verifySignature(req, queryDataId, secret)) return json({ error: "Assinatura inválida." }, 401);
 
     const mpResponse = await fetch(`https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -62,7 +71,10 @@ Deno.serve(async (req) => {
     const { data: record, error } = await admin.from("pagamentos").select("*").eq("id", paymentRecordId).maybeSingle();
     if (error) throw error;
     if (!record) return json({ error: "Registro de pagamento não encontrado." }, 404);
-    if (String(mp.currency_id) !== record.moeda || Math.round(Number(mp.transaction_amount) * 100) !== Math.round(Number(record.valor_total) * 100)) {
+    if (record.preferencia_id && mp.preference_id && String(mp.preference_id) !== String(record.preferencia_id)) {
+      return json({ error: "Preferência do pagamento divergente." }, 409);
+    }
+    if (String(mp.currency_id) !== record.moeda || !Number.isFinite(Number(mp.transaction_amount)) || Math.round(Number(mp.transaction_amount) * 100) !== Math.round(Number(record.valor_total) * 100)) {
       await admin.from("pagamentos").update({ status: "em_analise", status_provedor: "valor_ou_moeda_divergente", atualizado_em: new Date().toISOString() }).eq("id", record.id);
       return json({ error: "Valor ou moeda divergente; encaminhado para revisão." }, 409);
     }
@@ -76,14 +88,17 @@ Deno.serve(async (req) => {
       refunded: "reembolsado",
       charged_back: "em_analise",
     };
-    const nextStatus = allowed[String(mp.status)] ?? "em_analise";
+    let nextStatus = allowed[String(mp.status)] ?? "em_analise";
+    // Never downgrade an already approved payment because of a delayed/replayed older event.
+    if (record.status === "aprovado" && nextStatus !== "reembolsado") nextStatus = "aprovado";
+    if (record.status === "reembolsado" && nextStatus !== "reembolsado") nextStatus = "reembolsado";
     // Idempotent: repeated notifications update the same record, never create a second payment.
     const { error: updateError } = await admin.from("pagamentos").update({
       pagamento_externo_id: paymentId,
       status: nextStatus,
       status_provedor: String(mp.status_detail ?? mp.status ?? "unknown").slice(0, 100),
       atualizado_em: new Date().toISOString(),
-      confirmado_em: nextStatus === "aprovado" ? new Date().toISOString() : null,
+      confirmado_em: nextStatus === "aprovado" ? (record.confirmado_em ?? new Date().toISOString()) : record.confirmado_em,
     }).eq("id", record.id);
     if (updateError) throw updateError;
     return json({ received: true });
