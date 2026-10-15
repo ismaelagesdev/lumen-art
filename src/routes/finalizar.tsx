@@ -106,7 +106,7 @@ function Checkout() {
       });
       cart.clear();
       if (paymentError || !paymentData?.checkout_url) {
-        toast.warning(`Pedido ${pedido.numero_pedido ?? "criado"} registrado, mas o pagamento não foi iniciado. A cotação de frete por CEP ainda não está ativa; a equipe precisará concluir a configuração antes da cobrança.`);
+        toast.warning(`Pedido ${pedido.numero_pedido ?? "criado"} registrado, mas não foi possível iniciar o pagamento. Tente novamente ou fale com a equipe.`);
         navigate({ to: "/conta/pedidos/$id", params: { id: pedido.id } });
         return;
       }
@@ -171,13 +171,13 @@ function Checkout() {
               <span className="ml-auto rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Preferencial</span>
             </div>
             <p className="mt-2 text-sm text-muted-foreground">Planejado para cartão, Pix e demais opções habilitadas na conta Mercado Pago.</p>
-            <p className="mt-2 text-xs font-medium text-amber-600">Integração em preparação — nenhum pagamento será cobrado nesta etapa.</p>
+            <p className="mt-2 text-xs font-medium text-amber-600">O pagamento cobre somente os produtos. O frete dos Correios será cotado separadamente após a compra e combinado com você antes do envio.</p>
           </div>
-          <p className="flex gap-2 text-xs text-muted-foreground"><ShieldCheck className="h-4 w-4 shrink-0" aria-hidden /> O pagamento será habilitado somente após a confirmação do frete e a configuração segura do checkout.</p>
+          <p className="flex gap-2 text-xs text-muted-foreground"><ShieldCheck className="h-4 w-4 shrink-0" aria-hidden /> Você verá o valor dos produtos antes de pagar. O frete não está incluído e será combinado separadamente antes do despacho.</p>
         </section>
 
-        <Button type="submit" size="lg" className="w-full" disabled={busy}>{busy ? "Enviando..." : "Solicitar pedido"}</Button>
-        <p className="text-xs text-muted-foreground">Ao continuar, você envia uma solicitação de pedido; não está realizando uma compra paga ainda.</p>
+        <Button type="submit" size="lg" className="w-full" disabled={busy}>{busy ? "Preparando..." : "Pagar produtos com Mercado Pago"}</Button>
+        <p className="text-xs text-muted-foreground">O pagamento cobre somente os produtos. O frete será calculado e combinado separadamente antes do envio.</p>
       </aside>
     </form>
   );
