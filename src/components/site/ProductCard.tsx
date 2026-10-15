@@ -35,7 +35,7 @@ export function ProductCard({ slug, name, price, category, imageUrl, madeToOrder
       <div className="space-y-1 p-4">
         {category && <p className="eyebrow">{category}</p>}
         <h3 className="font-sans text-base font-semibold">{name}</h3>
-        <p className="text-sm text-muted-foreground">{price == null ? "Sob consulta" : `A partir de ${formatBRL(price)}`}</p>
+        <p className="text-sm text-muted-foreground">{price == null ? "Sob consulta" : formatBRL(price)}</p>
       </div>
     </Link>
   );
