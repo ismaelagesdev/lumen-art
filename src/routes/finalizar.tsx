@@ -102,11 +102,11 @@ function Checkout() {
       // The order is persisted first. If payment setup is unavailable, preserve the order
       // and route the customer to it instead of inviting them to submit a duplicate.
       const { data: paymentData, error: paymentError } = await supabase.functions.invoke("criar-pagamento", {
-        body: { order_id: pedido.id },
+        body: { order_id: pedido.id, destination_cep: f.cep.replace(/\\D/g, "") },
       });
       cart.clear();
       if (paymentError || !paymentData?.checkout_url) {
-        toast.warning(`Pedido ${pedido.numero_pedido ?? "criado"} registrado, mas o pagamento não foi iniciado. A equipe precisará confirmar o frete e os próximos passos.`);
+        toast.warning(`Pedido ${pedido.numero_pedido ?? "criado"} registrado, mas o pagamento não foi iniciado. A cotação de frete por CEP ainda não está ativa; a equipe precisará concluir a configuração antes da cobrança.`);
         navigate({ to: "/conta/pedidos/$id", params: { id: pedido.id } });
         return;
       }
