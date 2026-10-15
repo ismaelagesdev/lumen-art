@@ -13,11 +13,9 @@
 
 ## Bloqueio obrigatório: frete
 
-O checkout atual coleta endereço, mas não calcula frete. A função `criar-pagamento` falha de forma fechada até o modo de frete ser configurado no servidor:
-- `LUMEN_SHIPPING_MODE=free` somente se a loja decidir que o frete será grátis; ou
-- `LUMEN_SHIPPING_MODE=fixed` e `LUMEN_FIXED_SHIPPING_CENTS` com o valor fixo em centavos, se a loja adotar uma tarifa fixa.
+A política definida é **frete variável calculado por CEP**. A opção inicial recomendada é o **Melhor Envio**: a plataforma declara não cobrar mensalidade nem exigir volume mínimo e permite cotar várias transportadoras por API. Isso não garante que cada envio seja sempre o mais barato; a loja deve comparar cotações reais. Consulte a [documentação oficial de cotação](https://docs.melhorenvio.com.br/docs/cotacao-de-fretes) e as [informações comerciais](https://cotacao.melhorenvio.com.br/).
 
-Não configure nenhuma dessas opções até a regra comercial ser confirmada. Para frete variável por CEP/peso, a integração deve consultar um serviço de frete antes de criar a preferência.
+O CEP de origem informado é `18530-000`. O backend bloqueia o pagamento até que exista um token válido do Melhor Envio e especificações reais das embalagens de cada produto (largura, altura, comprimento em cm e peso em kg). Esses dados não existem no catálogo atual e não devem ser estimados.
 
 ## Configuração necessária no projeto Supabase
 
@@ -27,9 +25,11 @@ Não configure nenhuma dessas opções até a regra comercial ser confirmada. Pa
    - `MERCADOPAGO_ACCESS_TOKEN`: Access Token de teste primeiro; trocar para produção somente após homologação.
    - `MERCADOPAGO_WEBHOOK_SECRET`: chave secreta de assinatura de webhook gerada/configurada no painel de integrações do Mercado Pago.
    - `SITE_URL`: URL HTTPS pública real do site.
-   - `LUMEN_SHIPPING_MODE=cep` após a integração do provedor de frete.
-   - `LUMEN_ORIGIN_CEP`: CEP de expedição da loja.
-   - `LUMEN_FREIGHT_API_URL` e `LUMEN_FREIGHT_API_TOKEN`: somente se o provedor escolhido usar esse contrato; não são suficientes sem o adaptador específico.
+   - `LUMEN_SHIPPING_MODE=cep`.
+   - `LUMEN_ORIGIN_CEP=18530-000`.
+   - `MELHORENVIO_ACCESS_TOKEN`: token OAuth criado no painel do Melhor Envio; usar sandbox primeiro.
+   - `LUMEN_SHIPPING_PRODUCT_SPECS`: JSON com especificações reais por ID de produto: `width`, `height`, `length` (cm) e `weight` (kg).
+   - `LUMEN_SHIPPING_USER_AGENT`: nome da aplicação e contato técnico, exigido pela API.
 4. As variáveis `SUPABASE_URL`, `SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY` são usadas pelo runtime da função; a chave service role nunca deve ser enviada ao navegador.
 5. Configurar a URL de webhook como `https://<PROJECT_REF>.supabase.co/functions/v1/mercado-pago-webhook` no painel do Mercado Pago.
 6. Fazer um pagamento de teste aprovado, recusado e pendente; testar notificação duplicada, assinatura inválida, valor divergente e retorno sem webhook.
@@ -44,3 +44,11 @@ O checkout chama `supabase.functions.invoke("criar-pagamento", { body: { order_i
 - [Mercado Pago — Criar preferência](https://www.mercadopago.com.br/developers/pt/reference/online-payments/checkout-pro-preferences/create-preference/post)
 - [Supabase — Secrets para Edge Functions](https://supabase.com/docs/guides/functions/secrets)
 - [Supabase — Configuração de autenticação de Edge Functions](https://supabase.com/docs/guides/functions/auth)
+
+
+## Bloqueios operacionais específicos do frete
+
+A documentação oficial do Melhor Envio exige CEPs de origem/destino e dados reais dos produtos ou volumes; recomenda utilizar `custom_price` e `custom_delivery_time` quando retornados. A cotação deve ser apresentada ao comprador antes de confirmar o pagamento, e a opção escolhida e o valor cotado devem ser preservados para evitar divergência. Até haver dimensões/peso reais, token do provedor e uma etapa de checkout que apresente as opções, o sistema não deve criar uma preferência de pagamento.
+
+- [API oficial — cálculo de fretes](https://docs.melhorenvio.com.br/reference/calculo-de-fretes-por-produtos)
+- [API oficial — introdução à integração](https://docs.melhorenvio.com.br/docs/introducao-a-integracao)
