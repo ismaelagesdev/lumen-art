@@ -18,12 +18,12 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return response({ error: "Método não permitido." }, 405);
 
-  // Payments remain disabled until shipping is explicitly configured server-side.
+  // Lumen Print chose CEP-based variable shipping. Never fall back to free/fixed
+  // shipping: the checkout must remain closed until a real carrier quote is configured.
   const shippingMode = Deno.env.get("LUMEN_SHIPPING_MODE");
-  const fixedShipping = Number(Deno.env.get("LUMEN_FIXED_SHIPPING_CENTS") ?? "");
   if (!Deno.env.get("MERCADOPAGO_ACCESS_TOKEN")) return response({ error: "Pagamento ainda não configurado." }, 503);
-  if (shippingMode !== "free" && !(shippingMode === "fixed" && Number.isSafeInteger(fixedShipping) && fixedShipping >= 0)) {
-    return response({ error: "O frete precisa ser configurado antes de habilitar a cobrança." }, 409);
+  if (shippingMode !== "cep") {
+    return response({ error: "O frete variável por CEP precisa ser configurado no servidor antes de habilitar a cobrança." }, 409);
   }
 
   const authHeader = req.headers.get("Authorization");
@@ -48,9 +48,25 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => null);
     const orderId = typeof body?.order_id === "string" ? body.order_id : "";
+    const destinationCep = typeof body?.destination_cep === "string" ? body.destination_cep.replace(/\\D/g, "") : "";
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orderId)) {
       return response({ error: "Pedido inválido." }, 400);
     }
+    if (!/^\\d{8}$/.test(destinationCep)) {
+      return response({ error: "Informe um CEP de entrega válido para calcular o frete." }, 400);
+    }
+
+    // Explicit fail-closed guard until the selected carrier API, origin CEP and
+    // product package dimensions/weights are configured. No estimated amount is charged.
+    const freightApiUrl = Deno.env.get("LUMEN_FREIGHT_API_URL");
+    const freightApiToken = Deno.env.get("LUMEN_FREIGHT_API_TOKEN");
+    const originCep = (Deno.env.get("LUMEN_ORIGIN_CEP") ?? "").replace(/\\D/g, "");
+    if (!freightApiUrl || !freightApiToken || !/^\\d{8}$/.test(originCep)) {
+      return response({ error: "A cotação de frete por CEP ainda não está configurada. O pedido não será cobrado; a equipe precisa concluir a configuração de envio." }, 503);
+    }
+    // The provider-specific quote adapter must be implemented and validated before
+    // enabling payments; a generic endpoint contract is not safe to assume here.
+    return response({ error: "O provedor de frete ainda não foi integrado. Nenhuma cobrança foi criada." }, 503);
 
     const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data: order, error: orderError } = await admin.from("pedidos")
@@ -74,7 +90,8 @@ Deno.serve(async (req) => {
     if (itemsCents <= 0 || itemsCents !== cents(order.valor_total)) {
       return response({ error: "O valor dos itens não confere com o pedido. Solicite revisão da equipe." }, 409);
     }
-    const shippingCents = shippingMode === "free" ? 0 : fixedShipping;
+    // Reached only after a verified provider quote has been implemented above.
+    const shippingCents = 0;
     const totalCents = itemsCents + shippingCents;
     if (totalCents <= 0) return response({ error: "O total precisa ser maior que zero." }, 400);
 
