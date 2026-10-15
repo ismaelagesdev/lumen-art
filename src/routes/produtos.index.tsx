@@ -60,10 +60,10 @@ function Catalog() {
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
           <label htmlFor="busca" className="sr-only">Pesquisar produtos</label>
-          <Input id="busca" placeholder="Pesquisar produtos..." className="pl-9" defaultValue={s.q} onChange={(e) => set({ q: e.target.value || undefined })} />
+          <Input id="busca" placeholder="Pesquisar produtos..." className="pl-9" value={s.q ?? ""} onChange={(e) => set({ q: e.target.value || undefined })} />
         </div>
         <label className="sr-only" htmlFor="ordem">Ordenar por</label>
-        <select id="ordem" value={ordem} onChange={(e) => set({ ordem: e.target.value as "recentes" })} className="h-9 rounded-md border border-input bg-background px-3 text-sm">
+        <select id="ordem" value={ordem} onChange={(e) => set({ ordem: e.target.value as "recentes" | "menor" | "maior" | "nome" })} className="h-9 rounded-md border border-input bg-background px-3 text-sm">
           <option value="recentes">Mais recentes</option>
           <option value="menor">Menor preço</option>
           <option value="maior">Maior preço</option>
