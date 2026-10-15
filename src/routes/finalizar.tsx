@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { CreditCard, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useCart } from "@/hooks/use-cart";
@@ -70,18 +71,23 @@ function Checkout() {
     e.preventDefault();
     if (f.cep.replace(/\D/g, "").length !== 8) { toast.error("Informe um CEP válido."); return; }
     setBusy(true);
-    const { data, error } = await supabase.rpc("create_order", {
-      _items: cart.items.map((i) => ({ product_id: i.product_id, quantity: i.quantity, options: i.options })),
-      _customer_name: f.name,
-      _customer_phone: f.phone,
-      _shipping: { cep: f.cep, logradouro: f.street, numero: f.number, complemento: f.complement, bairro: f.district, cidade: f.city, uf: f.uf },
-      _notes: f.notes || null,
-    } as never);
-    setBusy(false);
-    if (error) { toast.error(errorMessage(error)); return; }
-    cart.clear();
-    toast.success("Pedido criado com sucesso!");
-    navigate({ to: "/conta/pedidos/$id", params: { id: data as string } });
+    try {
+      const { data, error } = await supabase.rpc("create_order", {
+        _items: cart.items.map((i) => ({ product_id: i.product_id, quantity: i.quantity, options: i.options })),
+        _customer_name: f.name,
+        _customer_phone: f.phone,
+        _shipping: { cep: f.cep, logradouro: f.street, numero: f.number, complemento: f.complement, bairro: f.district, cidade: f.city, uf: f.uf },
+        _notes: f.notes || null,
+      } as never);
+      if (error) throw error;
+      cart.clear();
+      toast.success("Pedido criado. A equipe confirmará os detalhes do frete e pagamento.");
+      navigate({ to: "/conta/pedidos/$id", params: { id: data as string } });
+    } catch (error) {
+      toast.error(errorMessage(error));
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -90,19 +96,19 @@ function Checkout() {
         <fieldset className="space-y-4 rounded-2xl border border-border bg-card p-6">
           <legend className="px-1 font-semibold">Seus dados</legend>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field id="nome" label="Nome completo"><Input id="nome" required maxLength={120} value={f.name} onChange={set("name")} /></Field>
-            <Field id="tel" label="Telefone / WhatsApp"><Input id="tel" required inputMode="tel" placeholder="(11) 91234-5678" value={f.phone} onChange={(e) => setF({ ...f, phone: formatPhone(e.target.value) })} /></Field>
+            <Field id="nome" label="Nome completo"><Input id="nome" autoComplete="name" required maxLength={120} value={f.name} onChange={set("name")} /></Field>
+            <Field id="tel" label="Telefone / WhatsApp"><Input id="tel" autoComplete="tel" required inputMode="tel" placeholder="(11) 91234-5678" value={f.phone} onChange={(e) => setF({ ...f, phone: formatPhone(e.target.value) })} /></Field>
           </div>
         </fieldset>
         <fieldset className="space-y-4 rounded-2xl border border-border bg-card p-6">
           <legend className="px-1 font-semibold">Endereço de entrega</legend>
           <div className="grid gap-4 sm:grid-cols-3">
-            <Field id="cep" label="CEP"><Input id="cep" required inputMode="numeric" placeholder="00000-000" value={f.cep} onChange={(e) => setF({ ...f, cep: formatCEP(e.target.value) })} onBlur={(e) => lookupCep(e.target.value)} /></Field>
-            <div className="sm:col-span-2"><Field id="rua" label="Logradouro"><Input id="rua" required value={f.street} onChange={set("street")} /></Field></div>
+            <Field id="cep" label="CEP"><Input id="cep" autoComplete="postal-code" required inputMode="numeric" placeholder="00000-000" value={f.cep} onChange={(e) => setF({ ...f, cep: formatCEP(e.target.value) })} onBlur={(e) => lookupCep(e.target.value)} /></Field>
+            <div className="sm:col-span-2"><Field id="rua" label="Logradouro"><Input id="rua" autoComplete="street-address" required value={f.street} onChange={set("street")} /></Field></div>
             <Field id="num" label="Número"><Input id="num" required value={f.number} onChange={set("number")} /></Field>
             <div className="sm:col-span-2"><Field id="comp" label="Complemento (opcional)"><Input id="comp" value={f.complement} onChange={set("complement")} /></Field></div>
             <Field id="bairro" label="Bairro"><Input id="bairro" required value={f.district} onChange={set("district")} /></Field>
-            <Field id="cidade" label="Cidade"><Input id="cidade" required value={f.city} onChange={set("city")} /></Field>
+            <Field id="cidade" label="Cidade"><Input id="cidade" autoComplete="address-level2" required value={f.city} onChange={set("city")} /></Field>
             <Field id="uf" label="Estado">
               <select id="uf" required value={f.uf} onChange={set("uf")} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
                 <option value="">Selecione</option>
@@ -114,18 +120,35 @@ function Checkout() {
         </fieldset>
       </div>
       <aside className="h-fit space-y-4 rounded-2xl border border-border bg-card p-5">
-        <h2 className="font-sans font-semibold">Resumo</h2>
+        <h2 className="font-sans font-semibold">Resumo do pedido</h2>
         <ul className="space-y-2 text-sm">
           {cart.items.map((i) => (
             <li key={i.key} className="flex justify-between gap-2"><span className="text-muted-foreground">{i.quantity}× {i.name}</span><span>{formatBRL(i.unit_price * i.quantity)}</span></li>
           ))}
         </ul>
-        <div className="flex justify-between border-t border-border pt-3 text-sm"><span>Frete</span><span className="text-muted-foreground">A combinar</span></div>
+        <div className="flex justify-between border-t border-border pt-3 text-sm"><span>Subtotal</span><span>{formatBRL(cart.subtotal)}</span></div>
+        <div className="flex justify-between text-sm"><span>Frete</span><span className="text-muted-foreground">A confirmar</span></div>
         <div className="flex justify-between text-lg font-semibold"><span>Total estimado</span><span>{formatBRL(cart.subtotal)}</span></div>
-        <div className="rounded-lg bg-secondary p-3 text-xs text-muted-foreground">
-          O pagamento on-line ainda não está disponível. Após o envio, a equipe confirma a personalização, o frete e a forma de pagamento pelo atendimento do pedido.
-        </div>
-        <Button type="submit" size="lg" className="w-full" disabled={busy}>{busy ? "Enviando..." : "Confirmar pedido"}</Button>
+
+        <section className="space-y-3 rounded-xl border border-primary/40 bg-primary/5 p-4" aria-labelledby="pagamento-titulo">
+          <div className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5 text-primary-glow" aria-hidden />
+            <h3 id="pagamento-titulo" className="font-semibold">Forma de pagamento</h3>
+          </div>
+          <div className="rounded-lg border border-primary/40 bg-background p-3">
+            <div className="flex items-center gap-2 font-medium">
+              <span className="grid h-4 w-4 place-items-center rounded-full border border-primary"><span className="h-2 w-2 rounded-full bg-primary" /></span>
+              Mercado Pago
+              <span className="ml-auto rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Preferencial</span>
+            </div>
+            <p className="mt-2 text-sm text-muted-foreground">Planejado para cartão, Pix e demais opções habilitadas na conta Mercado Pago.</p>
+            <p className="mt-2 text-xs font-medium text-amber-600">Integração em preparação — nenhum pagamento será cobrado nesta etapa.</p>
+          </div>
+          <p className="flex gap-2 text-xs text-muted-foreground"><ShieldCheck className="h-4 w-4 shrink-0" aria-hidden /> O pagamento será habilitado somente após a confirmação do frete e a configuração segura do checkout.</p>
+        </section>
+
+        <Button type="submit" size="lg" className="w-full" disabled={busy}>{busy ? "Enviando..." : "Solicitar pedido"}</Button>
+        <p className="text-xs text-muted-foreground">Ao continuar, você envia uma solicitação de pedido; não está realizando uma compra paga ainda.</p>
       </aside>
     </form>
   );

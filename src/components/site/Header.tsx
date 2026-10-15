@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useCart } from "@/hooks/use-cart";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export function Logo() {
   return (
@@ -22,7 +23,7 @@ export function Logo() {
 const nav = [
   { to: "/produtos", label: "Catálogo" },
   { to: "/encomenda", label: "Sob encomenda" },
-  { to: "/conta", label: "Atendimento" },
+  { to: "/conta", label: "Minha conta" },
 ] as const;
 
 export function Header() {
@@ -32,7 +33,13 @@ export function Header() {
   const navigate = useNavigate();
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error("Não foi possível sair da conta. Tente novamente.");
+      return;
+    }
+    setOpen(false);
+    toast.success("Você saiu da sua conta.");
     navigate({ to: "/" });
   };
 
