@@ -15,6 +15,13 @@
       "when": 1792086600000,
       "tag": "0001_security_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792086660000,
+      "tag": "0002_seed_initial_products",
+      "breakpoints": true
     }
   ]
 }
