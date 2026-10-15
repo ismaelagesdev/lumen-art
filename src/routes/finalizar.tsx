@@ -72,17 +72,35 @@ function Checkout() {
     if (f.cep.replace(/\D/g, "").length !== 8) { toast.error("Informe um CEP válido."); return; }
     setBusy(true);
     try {
-      const { data, error } = await supabase.rpc("create_order", {
-        _items: cart.items.map((i) => ({ product_id: i.product_id, quantity: i.quantity, options: i.options })),
-        _customer_name: f.name,
-        _customer_phone: f.phone,
-        _shipping: { cep: f.cep, logradouro: f.street, numero: f.number, complemento: f.complement, bairro: f.district, cidade: f.city, uf: f.uf },
-        _notes: f.notes || null,
+      const endereco = [
+        `Entrega: ${f.street}, ${f.number}`,
+        f.complement ? `Complemento: ${f.complement}` : "",
+        `Bairro: ${f.district}`,
+        `Cidade/UF: ${f.city}/${f.uf}`,
+        `CEP: ${f.cep}`,
+      ].filter(Boolean).join(" | ");
+      const observacoes = [endereco, f.notes.trim()].filter(Boolean).join("\nObservações: ");
+      const itens = cart.items.map((item) => ({
+        id: item.product_id,
+        quantidade: item.quantity,
+        cor: item.option_labels.length
+          ? item.option_labels.map((option) => `${option.name}: ${option.value}`).join("; ").slice(0, 100)
+          : null,
+        personalizado: item.option_labels.length > 0,
+      }));
+
+      const { data, error } = await supabase.rpc("criar_pedido", {
+        p_nome_cliente: f.name,
+        p_email_cliente: user?.email ?? null,
+        p_telefone_cliente: f.phone,
+        p_observacoes: observacoes || null,
+        p_itens: itens,
       } as never);
       if (error) throw error;
+      const pedido = data as { id?: string; numero_pedido?: string; valor_total?: number | string; status?: string };
       cart.clear();
-      toast.success("Pedido criado. A equipe confirmará os detalhes do frete e pagamento.");
-      navigate({ to: "/conta/pedidos/$id", params: { id: data as string } });
+      toast.success(`Pedido ${pedido.numero_pedido ?? "criado"} enviado! O pagamento ainda não foi cobrado; a equipe confirmará frete e próximos passos.`);
+      navigate({ to: "/produtos" });
     } catch (error) {
       toast.error(errorMessage(error));
     } finally {
