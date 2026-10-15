@@ -1,5 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { productsQuery } from "@/lib/catalog";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Paperclip } from "lucide-react";
@@ -16,7 +18,7 @@ import { RequireAuth } from "@/components/site/RequireAuth";
 import { uploadAttachment } from "@/components/site/OrderChat";
 
 export const Route = createFileRoute("/encomenda")({
-  validateSearch: z.object({ produto: z.string().uuid().optional() }),
+  validateSearch: z.object({ produto: z.string().regex(/^[1-9][0-9]{0,8}$/).optional() }),
   head: () => ({
     meta: [
       { title: "Projeto sob encomenda — Lumen Print" },
@@ -38,6 +40,8 @@ export const Route = createFileRoute("/encomenda")({
 function RequestForm() {
   const { produto } = Route.useSearch();
   const { user } = useAuth();
+  const products = useQuery(productsQuery);
+  const [selectedProduct, setSelectedProduct] = useState(produto ?? "");
   const navigate = useNavigate();
   const [name, setName] = useState((user?.user_metadata?.["full_name"] as string) ?? "");
   const [phone, setPhone] = useState("");
