@@ -48,11 +48,11 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => null);
     const orderId = typeof body?.order_id === "string" ? body.order_id : "";
-    const destinationCep = typeof body?.destination_cep === "string" ? body.destination_cep.replace(/\\D/g, "") : "";
+    const destinationCep = typeof body?.destination_cep === "string" ? body.destination_cep.replace(/\D/g, "") : "";
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orderId)) {
       return response({ error: "Pedido inválido." }, 400);
     }
-    if (!/^\\d{8}$/.test(destinationCep)) {
+    if (!/^\d{8}$/.test(destinationCep)) {
       return response({ error: "Informe um CEP de entrega válido para calcular o frete." }, 400);
     }
 
@@ -60,8 +60,8 @@ Deno.serve(async (req) => {
     // product package dimensions/weights are configured. No estimated amount is charged.
     const freightApiUrl = Deno.env.get("LUMEN_FREIGHT_API_URL");
     const freightApiToken = Deno.env.get("LUMEN_FREIGHT_API_TOKEN");
-    const originCep = (Deno.env.get("LUMEN_ORIGIN_CEP") ?? "18530-000").replace(/\\D/g, "");
-    if (!freightApiUrl || !freightApiToken || !/^\\d{8}$/.test(originCep)) {
+    const originCep = (Deno.env.get("LUMEN_ORIGIN_CEP") ?? "18530-000").replace(/\D/g, "");
+    if (!freightApiUrl || !freightApiToken || !/^\d{8}$/.test(originCep)) {
       return response({ error: "A cotação de frete por CEP ainda não está configurada. O pedido não será cobrado; a equipe precisa concluir a configuração de envio." }, 503);
     }
     // The provider-specific quote adapter must be implemented and validated before
