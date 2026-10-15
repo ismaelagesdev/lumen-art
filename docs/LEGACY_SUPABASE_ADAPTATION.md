@@ -19,15 +19,24 @@ A consulta lê somente produtos com `ativo = true`. As imagens, descrições, ca
 
 Os dois kits de troféus (IDs 1 e 2) ficam destacados no catálogo. Essa escolha é baseada na prioridade comercial informada para a loja, não em uma alteração no banco.
 
-## Limites importantes desta etapa
+## Fluxos adaptados nesta branch
 
-Esta alteração adapta **a leitura do catálogo**, não o fluxo completo de venda. O restante do projeto ainda referencia tabelas e RPCs do esquema novo, como `orders`, `order_items`, `product_options`, `create_order` e `create_custom_request`. O banco existente usa `pedidos`, `mensagens` e outras funções em português, com contratos diferentes.
+- **Checkout:** chama `criar_pedido` com os parâmetros e o formato JSON confirmados; o banco valida produtos, quantidades e preços. O endereço e as observações ficam no campo `pedidos.observacoes`.
+- **Encomendas:** o cliente seleciona um produto de referência e descreve a personalização. O pedido registra o preço-base oficial do produto; isso não é uma cotação final da personalização.
+- **Histórico e detalhes:** consultam `public.pedidos`; os itens são lidos do JSONB `pedidos.itens`.
+- **Atendimento:** consulta e grava `public.mensagens`; anexos usam o bucket privado `personalizacoes` com caminho iniciado pelo UUID do pedido.
+- **Acesso administrativo:** a checagem de papel usa `public.perfis` em vez da tabela inexistente `user_roles`.
 
-Até uma etapa posterior adaptar e testar esses contratos, não considerar checkout, solicitação sob encomenda ou mensagens integrados ao banco existente. Não executar as migrações `0000_lumen_core.sql` ou seeds existentes no Supabase atual como parte desta adaptação.
+## Limites e validação
 
-## Próximas etapas seguras
+O checkout registra solicitações de pedido; não processa pagamento, não confirma estoque e não calcula frete. As imagens, descrições, categorias e opções de produtos não existem nas colunas confirmadas de `public.produtos`, então a interface mantém espaços reservados e não inventa esses dados.
 
-1. Validar a compilação do adaptador e o carregamento dos seis produtos no ambiente conectado ao Supabase correto.
-2. Mapear imagens e descrições reais, sem atribuir arquivos a produtos por suposição.
-3. Inspecionar a assinatura e a implementação de `criar_pedido` e `criar_perfil_cliente` antes de adaptar pedidos/autenticação.
-4. Planejar mudanças de esquema somente se forem necessárias, com SQL aditivo, revisado e separado; preservar dados e políticas existentes.
+Nenhuma migração SQL foi executada e nenhum registro ou política do Supabase foi alterado por esta adaptação. Não executar `0000_lumen_core.sql` nem seeds no banco existente. A branch deve permanecer separada da `main` até o CI passar e os fluxos serem testados com a URL, chave pública e políticas RLS do projeto correto.
+
+## Testes pendentes antes de publicar
+
+1. Confirmar o CI do commit mais recente.
+2. Verificar catálogo, autenticação, checkout, histórico, mensagens e anexos no ambiente ligado ao Supabase correto.
+3. Confirmar com contas de cliente e equipe que RLS impede acesso cruzado entre pedidos.
+4. Validar os estados permitidos para atualização administrativa e revisar o tratamento de frete, pagamento e preço final de encomendas.
+5. Mapear imagens e descrições reais apenas depois de obter os arquivos e os textos corretos.
