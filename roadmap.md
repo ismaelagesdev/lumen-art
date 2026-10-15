@@ -1,0 +1,11 @@
+# Lumen Print — roadmap
+- [ ] Ativar Lovable Cloud
+- [ ] Design system (preto/grafite, roxo, magenta, laranja)
+- [ ] Banco: perfis, funções, categorias, produtos, opções, pedidos, itens, mensagens, arquivos (RLS)
+- [ ] Loja: início, catálogo (busca/filtros/ordenação), produto, sob encomenda
+- [ ] Carrinho + checkout (preço validado no servidor)
+- [ ] Autenticação: cadastro, login, recuperação
+- [ ] Área do cliente: pedidos, status, mensagens, envio de arquivos
+- [ ] Painel admin: indicadores, pedidos, status, mensagens, produtos/categorias, tempo real
+- [ ] WhatsApp (aguarda número real)
+- [ ] Pagamento (aguarda decisão de provedor)
