@@ -30,7 +30,7 @@ export const Route = createFileRoute("/finalizar")({
   ),
 });
 
-const UFS = "AC AL AP AM BA CE DF GO MA MT MS MG PA PB PR PE RJ RN RS RO RR SC SP SE TO".split(" ");
+const UFS = "AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO".split(" ");
 
 function Checkout() {
   const { user } = useAuth();
