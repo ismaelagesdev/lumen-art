@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
     // product package dimensions/weights are configured. No estimated amount is charged.
     const freightApiUrl = Deno.env.get("LUMEN_FREIGHT_API_URL");
     const freightApiToken = Deno.env.get("LUMEN_FREIGHT_API_TOKEN");
-    const originCep = (Deno.env.get("LUMEN_ORIGIN_CEP") ?? "").replace(/\\D/g, "");
+    const originCep = (Deno.env.get("LUMEN_ORIGIN_CEP") ?? "18530-000").replace(/\\D/g, "");
     if (!freightApiUrl || !freightApiToken || !/^\\d{8}$/.test(originCep)) {
       return response({ error: "A cotação de frete por CEP ainda não está configurada. O pedido não será cobrado; a equipe precisa concluir a configuração de envio." }, 503);
     }
