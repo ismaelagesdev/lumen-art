@@ -27,14 +27,16 @@ Não configure nenhuma dessas opções até a regra comercial ser confirmada. Pa
    - `MERCADOPAGO_ACCESS_TOKEN`: Access Token de teste primeiro; trocar para produção somente após homologação.
    - `MERCADOPAGO_WEBHOOK_SECRET`: chave secreta de assinatura de webhook gerada/configurada no painel de integrações do Mercado Pago.
    - `SITE_URL`: URL HTTPS pública real do site.
-   - `LUMEN_SHIPPING_MODE` e, se aplicável, `LUMEN_FIXED_SHIPPING_CENTS`: somente após definição do frete.
+   - `LUMEN_SHIPPING_MODE=cep` após a integração do provedor de frete.
+   - `LUMEN_ORIGIN_CEP`: CEP de expedição da loja.
+   - `LUMEN_FREIGHT_API_URL` e `LUMEN_FREIGHT_API_TOKEN`: somente se o provedor escolhido usar esse contrato; não são suficientes sem o adaptador específico.
 4. As variáveis `SUPABASE_URL`, `SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY` são usadas pelo runtime da função; a chave service role nunca deve ser enviada ao navegador.
 5. Configurar a URL de webhook como `https://<PROJECT_REF>.supabase.co/functions/v1/mercado-pago-webhook` no painel do Mercado Pago.
 6. Fazer um pagamento de teste aprovado, recusado e pendente; testar notificação duplicada, assinatura inválida, valor divergente e retorno sem webhook.
 
 ## Integração frontend e trabalho restante
 
-O checkout já chama `supabase.functions.invoke("criar-pagamento", { body: { order_id } })` depois de criar o pedido e redireciona para `checkout_url` quando a função retorna uma URL válida. Se a função não estiver pronta, o pedido permanece registrado e o cliente é encaminhado aos detalhes. A página de retorno é informativa; ela não declara o pagamento aprovado. Ainda falta disponibilizar uma consulta autenticada do estado de pagamento para o cliente e testar ponta a ponta depois de implantar migração e funções.
+O checkout chama `supabase.functions.invoke("criar-pagamento", { body: { order_id, destination_cep } })` depois de criar o pedido. No estado atual, a função bloqueia a cobrança de forma intencional até que o provedor de frete por CEP esteja efetivamente integrado; não retorna `checkout_url` sem uma cotação validada. Se a função não estiver pronta, o pedido permanece registrado e o cliente é encaminhado aos detalhes. A página de retorno é informativa; ela não declara o pagamento aprovado. Ainda falta disponibilizar uma consulta autenticada do estado de pagamento para o cliente e testar ponta a ponta depois de implantar migração e funções.
 
 ## Fontes oficiais
 
