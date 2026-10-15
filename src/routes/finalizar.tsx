@@ -72,17 +72,46 @@ function Checkout() {
     if (f.cep.replace(/\D/g, "").length !== 8) { toast.error("Informe um CEP válido."); return; }
     setBusy(true);
     try {
-      const { data, error } = await supabase.rpc("create_order", {
-        _items: cart.items.map((i) => ({ product_id: i.product_id, quantity: i.quantity, options: i.options })),
-        _customer_name: f.name,
-        _customer_phone: f.phone,
-        _shipping: { cep: f.cep, logradouro: f.street, numero: f.number, complemento: f.complement, bairro: f.district, cidade: f.city, uf: f.uf },
-        _notes: f.notes || null,
+      const endereco = [
+        `Entrega: ${f.street}, ${f.number}`,
+        f.complement ? `Complemento: ${f.complement}` : "",
+        `Bairro: ${f.district}`,
+        `Cidade/UF: ${f.city}/${f.uf}`,
+        `CEP: ${f.cep}`,
+      ].filter(Boolean).join(" | ");
+      const observacoes = [endereco, f.notes.trim()].filter(Boolean).join("\nObservações: ");
+      const itens = cart.items.map((item) => ({
+        id: item.product_id,
+        quantidade: item.quantity,
+        cor: item.option_labels.length
+          ? item.option_labels.map((option) => `${option.name}: ${option.value}`).join("; ").slice(0, 100)
+          : null,
+        personalizado: item.option_labels.length > 0,
+      }));
+
+      const { data, error } = await supabase.rpc("criar_pedido", {
+        p_nome_cliente: f.name,
+        p_email_cliente: user?.email ?? null,
+        p_telefone_cliente: f.phone,
+        p_observacoes: observacoes || null,
+        p_itens: itens,
       } as never);
       if (error) throw error;
+      const pedido = data as { id?: string; numero_pedido?: string; valor_total?: number | string; status?: string };
+      if (!pedido.id) throw new Error("O banco não retornou o identificador do pedido.");
+      // The order is persisted first. If payment setup is unavailable, preserve the order
+      // and route the customer to it instead of inviting them to submit a duplicate.
+      const { data: paymentData, error: paymentError } = await supabase.functions.invoke("criar-pagamento", {
+        body: { order_id: pedido.id, destination_cep: f.cep.replace(/\D/g, "") },
+      });
       cart.clear();
-      toast.success("Pedido criado. A equipe confirmará os detalhes do frete e pagamento.");
-      navigate({ to: "/conta/pedidos/$id", params: { id: data as string } });
+      if (paymentError || !paymentData?.checkout_url) {
+        toast.warning(`Pedido ${pedido.numero_pedido ?? "criado"} registrado, mas não foi possível iniciar o pagamento. Tente novamente ou fale com a equipe.`);
+        navigate({ to: "/conta/pedidos/$id", params: { id: pedido.id } });
+        return;
+      }
+      toast.success("Pedido registrado. Redirecionando para o ambiente seguro do Mercado Pago…");
+      window.location.assign(String(paymentData.checkout_url));
     } catch (error) {
       toast.error(errorMessage(error));
     } finally {
@@ -142,13 +171,13 @@ function Checkout() {
               <span className="ml-auto rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Preferencial</span>
             </div>
             <p className="mt-2 text-sm text-muted-foreground">Planejado para cartão, Pix e demais opções habilitadas na conta Mercado Pago.</p>
-            <p className="mt-2 text-xs font-medium text-amber-600">Integração em preparação — nenhum pagamento será cobrado nesta etapa.</p>
+            <p className="mt-2 text-xs font-medium text-amber-600">O pagamento cobre somente os produtos. O frete dos Correios será cotado separadamente após a compra e combinado com você antes do envio.</p>
           </div>
-          <p className="flex gap-2 text-xs text-muted-foreground"><ShieldCheck className="h-4 w-4 shrink-0" aria-hidden /> O pagamento será habilitado somente após a confirmação do frete e a configuração segura do checkout.</p>
+          <p className="flex gap-2 text-xs text-muted-foreground"><ShieldCheck className="h-4 w-4 shrink-0" aria-hidden /> Você verá o valor dos produtos antes de pagar. O frete não está incluído e será combinado separadamente antes do despacho.</p>
         </section>
 
-        <Button type="submit" size="lg" className="w-full" disabled={busy}>{busy ? "Enviando..." : "Solicitar pedido"}</Button>
-        <p className="text-xs text-muted-foreground">Ao continuar, você envia uma solicitação de pedido; não está realizando uma compra paga ainda.</p>
+        <Button type="submit" size="lg" className="w-full" disabled={busy}>{busy ? "Preparando..." : "Pagar produtos com Mercado Pago"}</Button>
+        <p className="text-xs text-muted-foreground">O pagamento cobre somente os produtos. O frete será calculado e combinado separadamente antes do envio.</p>
       </aside>
     </form>
   );
