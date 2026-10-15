@@ -69,8 +69,20 @@ function adaptProduct(row: LegacyProductRow): Product {
   };
 }
 
+type LegacyQueryResult = { data: unknown[] | null; error: { message: string } | null };
+type LegacyQuery = {
+  select: (columns: string) => {
+    eq: (column: string, value: boolean) => {
+      order: (column: string, options: { ascending: boolean }) => Promise<LegacyQueryResult>;
+    };
+  };
+};
+
 async function fetchLegacyProducts(): Promise<Product[]> {
-  const { data, error } = await supabase
+  // O cliente gerado não conhece a tabela legada; esta tipagem local evita alterar
+  // os tipos gerados do projeto inteiro só para consultar a tabela existente.
+  const legacyClient = supabase as unknown as { from: (table: string) => LegacyQuery };
+  const { data, error } = await legacyClient
     .from("produtos")
     .select("id, nome, preco, ativo, criado_em, atualizado_em")
     .eq("ativo", true)
