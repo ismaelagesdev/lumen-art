@@ -33,7 +33,13 @@ export function Header() {
   const navigate = useNavigate();
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error("Não foi possível sair da conta. Tente novamente.");
+      return;
+    }
+    setOpen(false);
+    toast.success("Você saiu da sua conta.");
     navigate({ to: "/" });
   };
 
