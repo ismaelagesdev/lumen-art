@@ -142,8 +142,8 @@ function ProductPage() {
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center rounded-md border border-input" role="group" aria-label="Quantidade">
               <Button variant="ghost" size="icon" onClick={() => setQty(Math.max(1, qty - 1))} aria-label="Diminuir"><Minus className="h-4 w-4" /></Button>
-              <input aria-label="Quantidade" value={qty} onChange={(e) => setQty(Math.max(1, Math.min(1000, Number(e.target.value.replace(/\D/g, "")) || 1)))} className="w-12 bg-transparent text-center text-sm" inputMode="numeric" />
-              <Button variant="ghost" size="icon" onClick={() => setQty(Math.min(1000, qty + 1))} aria-label="Aumentar"><Plus className="h-4 w-4" /></Button>
+              <input aria-label="Quantidade" value={qty} onChange={(e) => setQty(Math.max(1, Math.min(999, Number(e.target.value.replace(/\D/g, "")) || 1)))} className="w-12 bg-transparent text-center text-sm" inputMode="numeric" />
+              <Button variant="ghost" size="icon" onClick={() => setQty(Math.min(999, qty + 1))} aria-label="Aumentar"><Plus className="h-4 w-4" /></Button>
             </div>
             <Button size="lg" onClick={() => addToCart(false)}>Adicionar ao carrinho</Button>
             <Button size="lg" variant="outline" onClick={() => addToCart(true)}>Comprar agora</Button>
