@@ -37,7 +37,7 @@ function Checkout() {
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [f, setF] = useState({
-    name: (user?.user_metadata?.full_name as string) ?? "",
+    name: (user?.user_metadata?.["full_name"] as string) ?? "",
     phone: "",
     cep: "",
     street: "",
@@ -56,7 +56,7 @@ function Checkout() {
     try {
       const r = await fetch(`https://viacep.com.br/ws/${d}/json/`);
       const j = await r.json();
-      if (j.erro) return toast.error("CEP não encontrado.");
+      if (j.erro) { toast.error("CEP não encontrado."); return; }
       setF((p) => ({ ...p, street: j.logradouro || p.street, district: j.bairro || p.district, city: j.localidade || p.city, uf: j.uf || p.uf }));
     } catch {
       /* preenchimento manual */
@@ -68,7 +68,7 @@ function Checkout() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (f.cep.replace(/\D/g, "").length !== 8) return toast.error("Informe um CEP válido.");
+    if (f.cep.replace(/\D/g, "").length !== 8) { toast.error("Informe um CEP válido."); return; }
     setBusy(true);
     const { data, error } = await supabase.rpc("create_order", {
       _items: cart.items.map((i) => ({ product_id: i.product_id, quantity: i.quantity, options: i.options })),
@@ -78,7 +78,7 @@ function Checkout() {
       _notes: f.notes || null,
     } as never);
     setBusy(false);
-    if (error) return toast.error(errorMessage(error));
+    if (error) { toast.error(errorMessage(error)); return; }
     cart.clear();
     toast.success("Pedido criado com sucesso!");
     navigate({ to: "/conta/pedidos/$id", params: { id: data as string } });

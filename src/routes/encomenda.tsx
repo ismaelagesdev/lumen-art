@@ -39,7 +39,7 @@ function RequestForm() {
   const { produto } = Route.useSearch();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [name, setName] = useState((user?.user_metadata?.full_name as string) ?? "");
+  const [name, setName] = useState((user?.user_metadata?.["full_name"] as string) ?? "");
   const [phone, setPhone] = useState("");
   const [desc, setDesc] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -49,7 +49,7 @@ function RequestForm() {
     const arr = Array.from(list ?? []);
     for (const f of arr) {
       const err = validateUpload(f);
-      if (err) return toast.error(`${f.name}: ${err}`);
+      if (err) { toast.error(`${f.name}: ${err}`); return; }
     }
     setFiles(arr.slice(0, 5));
   };

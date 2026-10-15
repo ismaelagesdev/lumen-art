@@ -6,8 +6,8 @@ type Props = {
   slug: string;
   name: string;
   price: number | null;
-  category?: string | null;
-  imageUrl?: string;
+  category?: string | null | undefined;
+  imageUrl?: string | undefined;
   madeToOrder?: boolean;
 };
 

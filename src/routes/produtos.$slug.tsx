@@ -50,7 +50,7 @@ function ProductPage() {
 
   const addToCart = (goToCart: boolean) => {
     const missing = options.find((o) => o.required && !opts[o.id]?.trim());
-    if (missing) return toast.error(`Preencha a opção "${missing.name}".`);
+    if (missing) { toast.error(`Preencha a opção "${missing.name}".`); return; }
     if (unit == null) return;
     cart.add({
       product_id: p.id,
@@ -60,13 +60,13 @@ function ProductPage() {
       unit_price: unit,
       quantity: qty,
       options: Object.fromEntries(Object.entries(opts).filter(([, v]) => v.trim())),
-      option_labels: options.filter((o) => opts[o.id]?.trim()).map((o) => ({ name: o.name, value: opts[o.id] })),
+      option_labels: options.filter((o) => opts[o.id]?.trim()).map((o) => ({ name: o.name, value: opts[o.id] ?? "" })),
     });
     toast.success("Produto adicionado ao carrinho.");
     if (goToCart) navigate({ to: "/carrinho" });
   };
 
-  const img = urls[p.images[active]];
+  const img = urls[p.images[active] ?? ""];
   return (
     <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-2">
       <div className="space-y-3">
