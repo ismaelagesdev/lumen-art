@@ -15,14 +15,18 @@ export async function uploadAttachment(orderId: string, file: File, userId: stri
   if (err) throw new Error(err);
   const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-80);
   const path = `${orderId}/${crypto.randomUUID()}-${safe}`;
-  const { error } = await supabase.storage.from("attachments").upload(path, file, { contentType: file.type });
+  const { error } = await supabase.storage.from("personalizacoes").upload(path, file, { contentType: file.type });
   if (error) throw error;
-  const { error: e2 } = await supabase.from("messages").insert({
-    order_id: orderId,
-    sender_id: userId,
-    from_staff: fromStaff,
-    attachment_path: path,
-    attachment_name: file.name.slice(0, 200),
+  const { error: e2 } = await (supabase as any).from("mensagens").insert({
+    pedido_id: orderId,
+    remetente_id: userId,
+    remetente_tipo: fromStaff ? "equipe" : "cliente",
+    tipo_conteudo: "arquivo",
+    conteudo: "",
+    arquivo_path: path,
+    arquivo_nome: file.name.slice(0, 200),
+    arquivo_mime: file.type || null,
+    arquivo_tamanho: file.size,
   });
   if (e2) throw e2;
 }
@@ -38,7 +42,7 @@ export function OrderChat({ orderId }: { orderId: string }) {
   const { data: messages, isLoading } = useQuery({
     queryKey: key,
     queryFn: async () => {
-      const { data, error } = await supabase.from("messages").select("*").eq("order_id", orderId).order("created_at");
+      const { data, error } = await (supabase as any).from("mensagens").select("*").eq("pedido_id", orderId).order("criado_em");
       if (error) throw error;
       return data;
     },
@@ -47,7 +51,7 @@ export function OrderChat({ orderId }: { orderId: string }) {
   useEffect(() => {
     const ch = supabase
       .channel(`msg-${orderId}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `order_id=eq.${orderId}` }, () =>
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "mensagens", filter: `pedido_id=eq.${orderId}` }, () =>
         qc.invalidateQueries({ queryKey: key }),
       )
       .subscribe();
@@ -64,7 +68,7 @@ export function OrderChat({ orderId }: { orderId: string }) {
     const body = text.trim();
     if (!body || !user) return;
     setBusy(true);
-    const { error } = await supabase.from("messages").insert({ order_id: orderId, sender_id: user.id, from_staff: isAdmin, body: body.slice(0, 4000) });
+    const { error } = await (supabase as any).from("mensagens").insert({ pedido_id: orderId, remetente_id: user.id, remetente_tipo: isAdmin ? "equipe" : "cliente", tipo_conteudo: "texto", conteudo: body.slice(0, 4000) });
     setBusy(false);
     if (error) { toast.error(errorMessage(error)); return; }
     setText("");
@@ -86,7 +90,7 @@ export function OrderChat({ orderId }: { orderId: string }) {
   };
 
   const open = async (path: string) => {
-    const { data, error } = await supabase.storage.from("attachments").createSignedUrl(path, 300);
+    const { data, error } = await supabase.storage.from("personalizacoes").createSignedUrl(path, 300);
     if (error || !data) { toast.error("Não foi possível abrir o arquivo."); return; }
     window.open(data.signedUrl, "_blank", "noopener");
   };
@@ -104,15 +108,15 @@ export function OrderChat({ orderId }: { orderId: string }) {
           <p className="py-8 text-center text-sm text-muted-foreground">Nenhuma mensagem ainda.</p>
         ) : (
           messages.map((m) => {
-            const mine = m.sender_id === user?.id;
+            const mine = m.remetente_id === user?.id;
             return (
               <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                 <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${mine ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
-                  <p className="mb-0.5 text-[11px] opacity-70">{m.from_staff ? "Equipe Lumen Print" : "Cliente"} · {formatDate(m.created_at)}</p>
-                  {m.body && <p className="whitespace-pre-line break-words">{m.body}</p>}
-                  {m.attachment_path && (
+                  <p className="mb-0.5 text-[11px] opacity-70">{m.remetente_tipo === "equipe" ? "Equipe Lumen Print" : "Cliente"} · {formatDate(m.criado_em)}</p>
+                  {m.conteudo && <p className="whitespace-pre-line break-words">{m.conteudo}</p>}
+                  {m.arquivo_path && (
                     <button onClick={() => open(m.attachment_path!)} className="mt-1 inline-flex items-center gap-1.5 underline">
-                      <FileText className="h-4 w-4" /> {m.attachment_name ?? "Arquivo"}
+                      <FileText className="h-4 w-4" /> {m.arquivo_nome ?? "Arquivo"}
                     </button>
                   )}
                 </div>
