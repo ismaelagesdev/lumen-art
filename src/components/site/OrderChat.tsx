@@ -28,7 +28,10 @@ export async function uploadAttachment(orderId: string, file: File, userId: stri
     arquivo_mime: file.type || null,
     arquivo_tamanho: file.size,
   });
-  if (e2) throw e2;
+  if (e2) {
+    await supabase.storage.from("personalizacoes").remove([path]);
+    throw e2;
+  }
 }
 
 export function OrderChat({ orderId }: { orderId: string }) {
