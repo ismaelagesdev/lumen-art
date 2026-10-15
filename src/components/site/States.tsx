@@ -21,6 +21,7 @@ export function Empty({ title, children }: { title: string; children?: ReactNode
 export function StatusBadge({ status }: { status: string }) {
   const cls: Record<string, string> = {
     aguardando_personalizacao: "bg-ember/15 text-ember",
+    aguardandoPersonalizacao: "bg-ember/15 text-ember",
     aguardando_aprovacao: "bg-magenta/15 text-magenta",
     em_producao: "bg-primary/20 text-primary-glow",
     concluido: "bg-success/15 text-success",
@@ -28,6 +29,7 @@ export function StatusBadge({ status }: { status: string }) {
   };
   const labels: Record<string, string> = {
     aguardando_personalizacao: "Aguardando personalização",
+    aguardandoPersonalizacao: "Aguardando personalização",
     aguardando_aprovacao: "Aguardando aprovação",
     em_producao: "Em produção",
     concluido: "Concluído",
