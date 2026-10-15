@@ -98,9 +98,10 @@ function Checkout() {
       } as never);
       if (error) throw error;
       const pedido = data as { id?: string; numero_pedido?: string; valor_total?: number | string; status?: string };
+      if (!pedido.id) throw new Error("O banco não retornou o identificador do pedido.");
       cart.clear();
       toast.success(`Pedido ${pedido.numero_pedido ?? "criado"} enviado! O pagamento ainda não foi cobrado; a equipe confirmará frete e próximos passos.`);
-      navigate({ to: "/produtos" });
+      navigate({ to: "/conta/pedidos/$id", params: { id: pedido.id } });
     } catch (error) {
       toast.error(errorMessage(error));
     } finally {
