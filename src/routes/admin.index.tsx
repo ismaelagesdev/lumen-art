@@ -18,9 +18,9 @@ export const Route = createFileRoute("/admin/")({
 });
 
 const statuses = [
-  { value: "aguardando_personalizacao", label: "Aguardando personalização" },
-  { value: "aguardando_aprovacao", label: "Aguardando aprovação" },
-  { value: "em_producao", label: "Em produção" },
+  { value: "aguardandoPersonalizacao", label: "Aguardando personalização" },
+  { value: "aguardandoAprovacao", label: "Aguardando aprovação" },
+  { value: "emProducao", label: "Em produção" },
   { value: "concluido", label: "Concluído" },
   { value: "cancelado", label: "Cancelado" },
 ] as const;
@@ -30,10 +30,10 @@ function AdminPage() {
   const orders = useQuery({
     queryKey: ["admin-orders"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("orders")
-        .select("id, number, kind, status, total, created_at, customer_name, customer_phone")
-        .order("created_at", { ascending: false })
+      const { data, error } = await (supabase as any)
+        .from("pedidos")
+        .select("id, numero_pedido, status, valor_total, criado_em, nome_cliente, telefone_cliente")
+        .order("criado_em", { ascending: false })
         .limit(100);
       if (error) throw error;
       return data;
@@ -41,7 +41,7 @@ function AdminPage() {
   });
 
   const changeStatus = async (id: string, status: (typeof statuses)[number]["value"]) => {
-    const { error } = await supabase.from("orders").update({ status }).eq("id", id);
+    const { error } = await (supabase as any).from("pedidos").update({ status }).eq("id", id);
     if (error) {
       toast.error(error.message || "Não foi possível atualizar o pedido.");
       return;
@@ -71,12 +71,12 @@ function AdminPage() {
               <article key={order.id} className="grid gap-4 rounded-2xl border border-border bg-card p-5 lg:grid-cols-[1fr_220px] lg:items-center">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="font-semibold">Pedido #{order.number}</h2>
+                    <h2 className="font-semibold">Pedido #{order.numero_pedido}</h2>
                     <StatusBadge status={order.status} />
                   </div>
-                  <p className="mt-1 text-sm text-muted-foreground">{order.kind === "encomenda" ? "Sob encomenda" : "Compra"} · {formatDate(order.created_at)}</p>
-                  <p className="mt-2 text-sm">{order.customer_name} · {order.customer_phone}</p>
-                  <p className="mt-1 font-semibold">{formatBRL(order.total)}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{"Pedido"} · {formatDate(order.criado_em)}</p>
+                  <p className="mt-2 text-sm">{order.nome_cliente} · {order.telefone_cliente}</p>
+                  <p className="mt-1 font-semibold">{formatBRL(order.valor_total)}</p>
                 </div>
                 <div className="space-y-2">
                   <label htmlFor={`status-${order.id}`} className="text-xs font-medium text-muted-foreground">Atualizar status</label>
