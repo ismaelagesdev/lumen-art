@@ -26,7 +26,7 @@ function OrderDetailsPage() {
     queryKey: ["order", id, user?.id],
     enabled: !!user && !!id,
     queryFn: async () => {
-      const { data, error } = await supabase.from("orders").select("*").eq("id", id).maybeSingle();
+      const { data, error } = await supabase.from("orders").select("*").eq("id", id).eq("user_id", user!.id).maybeSingle();
       if (error) throw error;
       return data;
     },
