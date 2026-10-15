@@ -21,12 +21,15 @@ export const Route = createFileRoute("/conta/pedidos/$id")({
 
 function OrderDetailsPage() {
   const { id } = Route.useParams();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const order = useQuery({
-    queryKey: ["order", id, user?.id],
+    queryKey: ["order", id, user?.id, isAdmin],
     enabled: !!user && !!id,
     queryFn: async () => {
-      const { data, error } = await (supabase as any).from("pedidos").select("*").eq("id", id).eq("cliente_id", user!.id).maybeSingle();
+      let query = (supabase as any).from("pedidos").select("*").eq("id", id);
+      // A equipe pode abrir qualquer pedido; clientes continuam limitados aos próprios pedidos pela consulta e pelo RLS.
+      if (!isAdmin) query = query.eq("cliente_id", user!.id);
+      const { data, error } = await query.maybeSingle();
       if (error) throw error;
       return data;
     },
