@@ -13,11 +13,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const apply = async (session: Session | null) => {
       let isAdmin = false;
       if (session?.user) {
-        const { data } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", session.user.id)
-          .eq("role", "admin")
+        const { data } = await (supabase as any)
+          .from("perfis")
+          .select("papel")
+          .eq("id", session.user.id)
+          .eq("papel", "admin")
           .maybeSingle();
         isAdmin = !!data;
       }
