@@ -16,9 +16,9 @@ async function verifySignature(req: Request, dataId: string, secret: string) {
   const ts = parts.ts;
   const received = parts.v1;
   if (!ts || !received || !requestId || !/^\d+$/.test(ts)) return false;
-  // Reject stale signed requests to reduce replay risk (Mercado Pago timestamps are Unix seconds).
+  // Mercado Pago may retry notifications later; validate the signed timestamp format without imposing a narrow age window.
   const timestamp = Number(ts);
-  if (!Number.isSafeInteger(timestamp) || Math.abs(Date.now() / 1000 - timestamp) > 10 * 60) return false;
+  if (!Number.isSafeInteger(timestamp) || timestamp <= 0) return false;
   if (!dataId || !/^[a-zA-Z0-9]+$/.test(dataId)) return false;
 
   const manifest = `id:${dataId.toLowerCase()};request-id:${requestId};ts:${ts};`;
@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
     const { data: record, error } = await admin.from("pagamentos").select("*").eq("id", paymentRecordId).maybeSingle();
     if (error) throw error;
     if (!record) return json({ error: "Registro de pagamento não encontrado." }, 404);
-    if (record.preferencia_id && mp.preference_id && String(mp.preference_id) !== String(record.preferencia_id)) {
+    if (record.preferencia_id && (!mp.preference_id || String(mp.preference_id) !== String(record.preferencia_id))) {
       return json({ error: "Preferência do pagamento divergente." }, 409);
     }
     if (String(mp.currency_id) !== record.moeda || !Number.isFinite(Number(mp.transaction_amount)) || Math.round(Number(mp.transaction_amount) * 100) !== Math.round(Number(record.valor_total) * 100)) {
@@ -90,8 +90,9 @@ Deno.serve(async (req) => {
     };
     let nextStatus = allowed[String(mp.status)] ?? "em_analise";
     // Never downgrade an already approved payment because of a delayed/replayed older event.
-    if (record.status === "aprovado" && nextStatus !== "reembolsado") nextStatus = "aprovado";
-    if (record.status === "reembolsado" && nextStatus !== "reembolsado") nextStatus = "reembolsado";
+    const isChargeback = String(mp.status) === "charged_back";
+    if (record.status === "aprovado" && nextStatus !== "reembolsado" && !isChargeback) nextStatus = "aprovado";
+    if (record.status === "reembolsado" && nextStatus !== "reembolsado" && !isChargeback) nextStatus = "reembolsado";
     // Idempotent: repeated notifications update the same record, never create a second payment.
     const { error: updateError } = await admin.from("pagamentos").update({
       pagamento_externo_id: paymentId,
