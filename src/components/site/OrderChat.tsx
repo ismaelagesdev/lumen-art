@@ -115,7 +115,7 @@ export function OrderChat({ orderId }: { orderId: string }) {
                   <p className="mb-0.5 text-[11px] opacity-70">{m.remetente_tipo === "equipe" ? "Equipe Lumen Print" : "Cliente"} · {formatDate(m.criado_em)}</p>
                   {m.conteudo && <p className="whitespace-pre-line break-words">{m.conteudo}</p>}
                   {m.arquivo_path && (
-                    <button onClick={() => open(m.attachment_path!)} className="mt-1 inline-flex items-center gap-1.5 underline">
+                    <button onClick={() => open(m.arquivo_path!)} className="mt-1 inline-flex items-center gap-1.5 underline">
                       <FileText className="h-4 w-4" /> {m.arquivo_nome ?? "Arquivo"}
                     </button>
                   )}
