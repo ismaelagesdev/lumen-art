@@ -24,7 +24,7 @@ export const Route = createFileRoute("/produtos/$slug")({
 
 function ProductPage() {
   const { slug } = Route.useParams();
-  const { data: p, isLoading, isError, refetch } = useQuery(productQuery(slug));
+  const { data: p, isLoading, isError, refetch, isFetching } = useQuery(productQuery(slug));
   const { data: urls = {} } = useImageUrls(p?.images ?? []);
   const [active, setActive] = useState(0);
   const [qty, setQty] = useState(1);
@@ -33,6 +33,22 @@ function ProductPage() {
   const navigate = useNavigate();
 
   if (isLoading) return <Loading />;
+  if (isError) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-16">
+        <Empty title="Não foi possível carregar este produto">
+          <p>O produto pode estar temporariamente indisponível. Tente novamente ou volte ao catálogo.</p>
+          <div className="mt-4 flex flex-wrap justify-center gap-3">
+            <Button variant="outline" onClick={() => refetch()} disabled={isFetching}>
+              <RefreshCw className={isFetching ? "mr-2 h-4 w-4 animate-spin" : "mr-2 h-4 w-4"} />
+              {isFetching ? "Tentando novamente..." : "Tentar novamente"}
+            </Button>
+            <Button asChild variant="ghost"><Link to="/produtos">Voltar ao catálogo</Link></Button>
+          </div>
+        </Empty>
+      </div>
+    );
+  }
   if (!p)
     return (
       <div className="mx-auto max-w-3xl px-4 py-16">
